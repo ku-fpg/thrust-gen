@@ -39,13 +39,13 @@ runLibs (Pure _) = return []
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
-interp (Pure _)    = putStr ""
+interp (Pure _)    = putStrLn "}"
 
 runInterp :: Prog () -> IO ()
-runInterp (Free p@(Proc t name args body next)) = do putStrLn (show p) 
-                                                     interp (evalStateT body 0) 
+runInterp (Free p@(Proc t name args body next)) = do putStrLn (show p)
+                                                     interp (evalStateT body 0)
                                                      runInterp next 
-runInterp (Pure _) = putStrLn "}"
+runInterp (Pure _) = putStrLn ""
 
 run :: Prog () -> IO()
 run p = do res <- runLibs p
