@@ -2,11 +2,24 @@
 
 module Lang where
 
-import Control.Monad.State
-import Control.Monad.Free
 import Types
 import Data.List
-import Data.Map
+import Data.Maybe
+import Control.Monad.State
+import Control.Monad.Free
+import Prelude hiding(lookup)
+
+getLib :: Statement a -> String
+getLib l = "#include <thrust/" ++ getLibNm l ++ ">\n"
+
+getLibNm :: Statement a -> String
+getLibNm (Decl _ _)    = "device_vector.h"
+getLibNm (Trans _ _ _) = "transform.h"
+
+getLibs :: Stmt a -> IO [String]
+getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
+getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
+getLibs (Pure _)                  = return []
 
 new :: Body Int
 new = do p <- get
@@ -27,11 +40,6 @@ vector sz elems = do p <- new
 transform :: (Expr -> Expr) -> HVector -> Body ()
 transform fun col = let expr = fun (Var "x")
                     in liftF $ Trans expr col ()
-
-getLibs :: Stmt a -> IO [String]
-getLibs (Free (Decl v next))      = liftM2 (++) (return ["#include thrust/host_vector.h"]) (getLibs next)
-getLibs (Free (Trans fun v next)) = liftM2 (++)  (return ["#include thrust/transform.h"]) (getLibs next)
-getLibs (Pure _)                  = return []
 
 runLibs :: Prog () -> IO [String]
 runLibs (Free (Proc t name args body next)) = liftM2 (++) (getLibs (evalStateT body 0)) (runLibs next)
