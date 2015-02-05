@@ -9,6 +9,11 @@ import Control.Monad.State
 import Control.Monad.Free
 import Prelude hiding(lookup)
 
+import Data.Char
+import Data.Data
+import Data.Typeable
+import Data.Map.Lazy as Map
+
 getLib :: Statement a -> String
 getLib l = "#include <thrust/" ++ getLibNm l ++ ">\n"
 
