@@ -6,12 +6,22 @@ module Types where
 import Control.Monad.State
 import Control.Monad.Free
 
-data HVector = Vec Int Int [(Int, Int)]
+data Expr = Lit Integer | Add Expr Expr | Sub Expr Expr | Mult Expr Expr | Var String
+    deriving Show
+
+instance Num Expr where
+    fromInteger n = Lit n
+    e1 + e2 = Add e1 e2
+    e1 * e2 = Mult e1 e2
+    e1 - e2 = Sub e1 e2
+
+data HVector = Vec Int Int [(Int, Expr)]
+    deriving Show
 
 data ElemType where
     CInt :: ElemType
 
-data Statement next = Decl HVector next | Trans String HVector next
+data Statement next = Decl HVector next | Trans Expr HVector next
     deriving (Functor)
 
 data Fun next = Proc ElemType Name [(ElemType, Name)] (Body next) next
@@ -26,7 +36,7 @@ instance Show (Statement next) where
                                                   ++ ".begin(), v" 
                                                   ++ show ident 
                                                   ++ ".end(), " 
-                                                  ++ fun 
+                                                  ++ show fun 
                                                   ++ ");"
 
 instance Show ElemType where

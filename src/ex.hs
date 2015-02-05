@@ -5,7 +5,7 @@ import Data.List
 test :: Prog ()
 test = do proc int "test" [(int, "x")] $ do a <- vector 5 []
                                             b <- vector 10 [(5,5)]
-                                            transform "fun" a
+                                            transform (\x -> x + 1) a
                                             return ()
           proc int "main" [] $ do c <- vector 1 []
                                   return ()

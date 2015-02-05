@@ -19,13 +19,14 @@ int = CInt
 proc :: ElemType -> String -> [(ElemType, String)] -> Body () -> Prog ()
 proc t name args body = liftF $ Proc t name args body ()
 
-vector :: Int -> [(Int, Int)] -> Body HVector
+vector :: Int -> [(Int, Expr)] -> Body HVector
 vector sz elems = do p <- new
                      let vector = Vec p sz elems
                      liftF $ Decl (vector) vector
 
-transform :: Name -> HVector -> Body ()
-transform fun col = liftF $ Trans fun col ()
+transform :: (Expr -> Expr) -> HVector -> Body ()
+transform fun col = let expr = fun (Var "x")
+                    in liftF $ Trans expr col ()
 
 getLibs :: Stmt a -> IO [String]
 getLibs (Free (Decl v next))      = liftM2 (++) (return ["#include thrust/host_vector.h"]) (getLibs next)
