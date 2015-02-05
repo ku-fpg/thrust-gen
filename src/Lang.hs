@@ -7,10 +7,9 @@ import Data.List
 import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
-import Prelude hiding(lookup)
 
 getLib :: Statement a -> String
-getLib l = "#include <thrust/" ++ getLibNm l ++ ">\n"
+getLib l = "#include <thrust/" ++ getLibNm l ++ ".h>\n"
 
 getLibNm :: Statement a -> String
 getLibNm (Decl _ _)    = "device_vector.h"

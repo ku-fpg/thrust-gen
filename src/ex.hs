@@ -11,6 +11,10 @@ test = do proc int "test" [(int, "x")] $ do a <- vector 5 []
                                   return ()
           return ()
 
+          proc int "main" [] 
+            $ do  c <- vector 1 []
+                  return ()
+          
+          return ()
 
 main = run test
-
