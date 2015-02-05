@@ -9,11 +9,14 @@ import Control.Monad.State
 import Control.Monad.Free
 import Prelude hiding(lookup)
 
+getLib :: Statement a -> String
 getLib l = "#include <thrust/" ++ getLibNm l ++ ">\n"
 
+getLibNm :: Statement a -> String
 getLibNm (Decl _ _)    = "device_vector.h"
 getLibNm (Trans _ _ _) = "transform.h"
 
+getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
 getLibs (Pure _)                  = return []
