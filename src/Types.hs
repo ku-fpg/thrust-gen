@@ -23,13 +23,18 @@ data ElemType where
 data Statement next = Decl HVector next | Trans Expr HVector next
     deriving (Functor)
 
-data Fun next = Proc ElemType Name [(ElemType, Name)] (Body next) next
-  deriving (Functor)
 
 instance Show (Statement next) where
     show (Decl (Vec ident sz elems) next) = "\tthrust::host_vector<type>v" 
                                             ++ (show ident) 
-                                            ++ ";"
+                                            ++ ";\n\t"
+                                            ++ concatMap (\(ind, val) -> "v" 
+                                                                         ++ (show ident) 
+                                                                         ++ "[" 
+                                                                         ++ (show ind)
+                                                                         ++ "] = "
+                                                                         ++ (show val) 
+                                                                         ++ ";\n\t") elems
     show (Trans fun (Vec ident sz elems) next) = "\tthrust::transform(v" 
                                                   ++ show ident 
                                                   ++ ".begin(), v" 
@@ -41,26 +46,7 @@ instance Show (Statement next) where
 instance Show ElemType where
     show (CInt) = "int"    
 
-instance Show (Fun next) where
-    show (Proc t name args body next) = show t 
-                                        ++ " " 
-                                        ++ name 
-                                        ++ "(" 
-                                        ++ (foldr (\(t, name) acc -> 
-                                              (show t 
-                                                ++ " " 
-                                                ++ name) 
-                                              ++ case acc of
-                                                ")" -> acc
-                                                _ -> ", " ++ acc)
-                                                ")" args) 
-                                        ++ "{"
-
-type Name = String
-
 type Stmt = Free Statement
 
-type Body = StateT Int Stmt 
-
-type Prog = Free Fun
+type Func = StateT Int Stmt
 

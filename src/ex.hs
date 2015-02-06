@@ -1,20 +1,14 @@
 import Lang
 import Types
-import Data.List
 
-test :: Prog ()
-test = do proc int "test" [(int, "x")] $ do a <- vector 5 []
-                                            b <- vector 10 [(5,5)]
-                                            transform (\x -> x + 1) a
-                                            return ()
-          proc int "main" [] $ do c <- vector 1 []
-                                  return ()
-          return ()
+foo :: Func HVector
+foo = do a <- vector 20 [(0,5), (1, 20), (2, 4)]
+         b <- transform (\x -> x + 1) a
+         return b
 
-          proc int "main" [] 
-            $ do  c <- vector 1 []
-                  return ()
-          
-          return ()
+prog :: Int -> Expr -> Func ()
+prog x y = do res <- foo
+              res' <- transform (\x -> x * 5) res
+              return ()
 
-main = run test
+main = run (prog 0 1)
