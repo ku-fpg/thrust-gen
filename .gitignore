@@ -1,3 +1,5 @@
+*.cc
+*.hh
 .*.*.sw*
 **dist**
 *dist*
