@@ -17,6 +17,6 @@ main = run (prog 0 1)
 
 main_:: IO ()
 main_ = do 
-          let cfunc = CFunctor "foo" CInt [(CInt, "z"), (CInt, "y")] $ (\y -> (4 + y)) (Var "y")    
+          let cfunc = CFunctor "foo" CInt [(CInt, "z"), (CInt, "y")] $ (\y -> (4 + y)) (Var "y") 
           putStrLn $ show cfunc
           return ()   

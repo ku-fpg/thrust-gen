@@ -33,13 +33,13 @@ instance Show Expr where
 instance Show CFunctor where
   show (CFunctor id ret args expr) = "struct " 
                                      ++ id 
-                                     ++ " { \n\n"
+                                     ++ " { \n"
                                      ++ (concat $ map (\s -> "\t" ++ s) args')
                                      ++ "\t"
                                      ++ show ret
                                      ++ " operator(){\n \t\treturn"
                                      ++ show expr
-                                     ++ "; \n \t}\n }\n"
+                                     ++ "; \n \t}\n };\n"
                                        where args' = map (\(x,y) -> x ++ " " ++ y ++ ";\n") conv
                                              conv  = map (\(x,y) -> (show x, y)) args
 
