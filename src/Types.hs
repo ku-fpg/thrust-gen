@@ -32,15 +32,16 @@ instance Show Expr where
 
 instance Show CFunctor where
   show (CFunctor id ret args expr) = "struct " 
-                                     ++ show id 
+                                     ++ id 
                                      ++ " { \n\n"
-                                     ++ concat args' 
+                                     ++ (concat $ map (\s -> "\t" ++ s) args')
+                                     ++ "\t"
                                      ++ show ret
-                                     ++ " operator(){\n return\n"
+                                     ++ " operator(){\n \t\treturn"
                                      ++ show expr
-                                     ++ "; \n }\n }\n"
+                                     ++ "; \n \t}\n }\n"
                                        where args' = map (\(x,y) -> x ++ " " ++ y ++ ";\n") conv
-                                             conv  = map (\(x,y) -> (show x, show y)) args
+                                             conv  = map (\(x,y) -> (show x, y)) args
 
 data HVector = Vec Int Int [(Int, Expr)]
     deriving Show
