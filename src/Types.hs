@@ -11,6 +11,12 @@ data Expr = Lit Integer
         | Mult Expr Expr 
         | Var String
 
+type ID = String
+
+type Args = [(ElemType, ID)]
+
+data CFunctor = CFunctor ID ElemType Args Expr
+
 instance Num Expr where
   fromInteger n = Lit n
   e1 + e2 = Add e1 e2
@@ -24,6 +30,18 @@ instance Show Expr where
   show (Lit n)      = "(" ++ show n ++ ")"
   show (Var s)      = "(" ++ s ++ ")"
 
+instance Show CFunctor where
+  show (CFunctor id ret args expr) = "struct " 
+                                     ++ show id 
+                                     ++ " { \n\n"
+                                     ++ concat args' 
+                                     ++ show ret
+                                     ++ " operator(){\n return\n"
+                                     ++ show expr
+                                     ++ "; \n }\n }\n"
+                                       where args' = map (\(x,y) -> x ++ " " ++ y ++ ";\n") conv
+                                             conv  = map (\(x,y) -> (show x, show y)) args
+
 data HVector = Vec Int Int [(Int, Expr)]
     deriving Show
 
@@ -33,7 +51,6 @@ data ElemType where
 data Statement next = Decl HVector next 
                     | Trans Expr HVector next
     deriving (Functor)
-
 
 instance Show (Statement next) where
   show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type>v" 
