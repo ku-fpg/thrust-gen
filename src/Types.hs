@@ -2,6 +2,7 @@
 
 module Types where
 
+import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -34,17 +35,19 @@ instance Show CFunctor where
   show (CFunctor id ret args expr) = "struct " 
                                      ++ id 
                                      ++ " { \n"
-                                     ++ (concat $ map (\s -> "\t" ++ s) args')
+                                 --    ++ (concat $ map (\s -> "\t" ++ s ++ ";\n") args')
                                      ++ "\t"
                                      ++ show ret
-                                     ++ " operator(){\n \t\treturn"
+                                     ++ " operator()( "
+                                     ++ (tail $ foldl (\x y -> x ++ "," ++ y) "" args')
+                                     ++ ") {\n \t\treturn"
                                      ++ show expr
                                      ++ "; \n \t}\n };\n"
-                                       where args' = map (\(x,y) -> x ++ " " ++ y ++ ";\n") conv
+                                       where args' = map (\(x,y) -> x ++ " " ++ y ) conv
                                              conv  = map (\(x,y) -> (show x, y)) args
 
 data HVector = Vec Int Int [(Int, Expr)]
-    deriving Show
+  deriving Show
 
 data ElemType where
     CInt :: ElemType

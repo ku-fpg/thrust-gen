@@ -15,6 +15,12 @@ prog x y = do res <- foo
 
 main = run (prog 0 1)
 
+-- Predefined cfunc example
+
+
+adder :: CFunctor
+adder = CFunctor "adder" CInt [(CInt, "z")] $ (\z -> (4 + z)) (Var "z")
+
 main_:: IO ()
 main_ = do 
           let cfunc = CFunctor "foo" CInt [(CInt, "z"), (CInt, "y")] $ (\y -> (4 + y)) (Var "y") 
