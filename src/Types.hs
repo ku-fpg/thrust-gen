@@ -48,7 +48,7 @@ instance Show CFunctor where
 
 data HVector = Vec Int Int [(Int, Expr)]
   deriving Show
-
+  
 data ElemType where
     CInt :: ElemType
 
