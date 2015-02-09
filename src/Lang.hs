@@ -9,7 +9,7 @@ import Control.Monad.State
 import Control.Monad.Free
 
 getLib :: Statement a -> String
-getLib l = "#include <thrust/" ++ getLibNm l
+getLib l = "#include <thrust/" ++ getLibNm l ++ ">"
 
 getLibNm :: Statement a -> String
 getLibNm (Decl _ _)    = "host_vector.h"
