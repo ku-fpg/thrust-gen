@@ -6,24 +6,40 @@ import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
+
+{-- BEGIN Datatypes ----------------------------------------------------}
 data Expr = Lit Integer 
         | Add Expr Expr 
         | Sub Expr Expr 
         | Mult Expr Expr 
         | Var String
 
-type ID = String
-
-type Args = [(ElemType, ID)]
+data Args = Args [(ElemType, ID)]
 
 data CFunctor = CFunctor ID ElemType Args Expr
 
-instance Num Expr where
-  fromInteger n = Lit n
-  e1 + e2 = Add e1 e2
-  e1 * e2 = Mult e1 e2
-  e1 - e2 = Sub e1 e2
+data HVector = Vec Int Int [(Int, Expr)]
+  deriving Show
+  
+data ElemType where
+  CInt :: ElemType
 
+data Statement next = Decl HVector next 
+                    | Trans Expr HVector next
+  deriving (Functor)
+
+newtype CFunc = CFunc CFunctor 
+
+-- Synonyms
+type Stmt = Free Statement
+
+type Func = StateT Int Stmt
+
+type ID = String
+
+{-- END Datatypes -------------------------------------------------------}
+
+{-- BEGIN Show Instances ------------------------------------------------}
 instance Show Expr where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
@@ -31,30 +47,32 @@ instance Show Expr where
   show (Lit n)      = "(" ++ show n ++ ")"
   show (Var s)      = "(" ++ s ++ ")"
 
+-- TODO add binary_function inheritance
+-- Relies on the CFunc Show instance, just replacing
+-- the id with operator()
+instance Show Args where
+  show (Args [])   = ""
+  show (Args args) = tail $ foldl (\x y -> x ++ "," ++ y) "" args'
+      where args' = map (\(x,y) -> x ++ " " ++ y) cmap
+            cmap  = map (\(x,y) -> ("const " ++ x ++ "& ",y)) conv
+            conv  = map (\(x,y) -> (show x, y)) args  
+
+
 instance Show CFunctor where
-  show (CFunctor id ret args expr) = "struct " 
-                                     ++ id 
-                                     ++ " { \n"
-                                 --    ++ (concat $ map (\s -> "\t" ++ s ++ ";\n") args')
-                                     ++ "\t"
-                                     ++ show ret
-                                     ++ " operator()( "
-                                     ++ (tail $ foldl (\x y -> x ++ "," ++ y) "" args')
-                                     ++ ") {\n \t\treturn"
-                                     ++ show expr
-                                     ++ "; \n \t}\n };\n"
-                                       where args' = map (\(x,y) -> x ++ " " ++ y ) conv
-                                             conv  = map (\(x,y) -> (show x, y)) args
+  show c@(CFunctor id ret args expr) = "struct " ++ id ++ " { " 
+                                          ++ show tmp  ++ "};\n"
+    where tmp = CFunc (CFunctor "operator()" ret args expr)
 
-data HVector = Vec Int Int [(Int, Expr)]
-  deriving Show
-  
-data ElemType where
-    CInt :: ElemType
+instance Show CFunc where
+  show (CFunc (CFunctor id ret args expr)) = hostDevDecl
+                                             ++ show ret 
+                                             ++ id
+                                             ++ ("(" ++ show args ++ ")")
+                                             ++ ("{\n" 
+                                                 ++ "return " 
+                                                 ++ show expr ++ ";"
+                                                 ++ "}\n")
 
-data Statement next = Decl HVector next 
-                    | Trans Expr HVector next
-    deriving (Functor)
 
 instance Show (Statement next) where
   show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type>v" 
@@ -77,8 +95,24 @@ instance Show (Statement next) where
                                           ++ ");"
 
 instance Show ElemType where
-    show (CInt) = "int"    
+  show (CInt) = "int"    
 
-type Stmt = Free Statement
 
-type Func = StateT Int Stmt
+{-- END Show Instances --------------------------------------------------}
+
+instance Num Expr where
+  fromInteger n = Lit n
+  e1 + e2 = Add e1 e2
+  e1 * e2 = Mult e1 e2
+  e1 - e2 = Sub e1 e2
+
+
+hostFuncDecl :: String
+hostFuncDecl = "__host__"
+
+devFuncDecl :: String
+devFuncDecl = "__device__"
+
+hostDevDecl :: String
+hostDevDecl = hostFuncDecl ++ " " ++ devFuncDecl ++ "\n"
+
