@@ -2,7 +2,7 @@ import Prelude hiding ((>))
 import Lang
 import Types
 
-foo :: Func HVector
+foo :: Func Vector
 foo = do a <- vector 20 [(0,5), (1, 20), (2, 4)]
          b <- transform (\x -> x + 1) a
          return b

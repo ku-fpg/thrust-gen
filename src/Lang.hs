@@ -16,13 +16,14 @@ getLib :: Statement a -> String
 getLib l = "#include <" ++ (show $ getLibGrp l) ++ "/" ++ getLibNm l ++ ".h>"
 
 getLibNm :: Statement a -> String
-getLibNm (Decl _ _)    = "host_vector"
+getLibNm (Decl HVector {} _)    = "host_vector"
+getLibNm (Decl DVector {} _)    = "device_vector"
 getLibNm (Trans _ _ _) = "transform"
 getLibNm (Print _ _)   = "iostream"
-getLibNm (DeclD _ _)   = "device_vector"
 
 getLibs :: Stmt a -> IO [String]
-getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
+getLibs (Free d@(Decl HVector {} next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
+getLibs (Free d@(Decl DVector {} next))   = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
 getLibs (Pure _)                  = return []
 
@@ -31,12 +32,12 @@ new = do p <- get
          put (p+1)
          return p
 
-vector :: Int -> [(Int, Expr)] -> Func HVector
+vector :: Int -> [(Int, Expr)] -> Func Vector
 vector sz elems = do p <- new
-                     let vector = Vec p sz elems
+                     let vector = HVector { hIdent = p, hSize = sz, hAssignments = elems}
                      liftF $ Decl (vector) vector
 
-transform :: (Expr -> Expr) -> HVector -> Func HVector
+transform :: (Expr -> Expr) -> Vector -> Func Vector
 transform fun col = let expr = fun (Var "x")
                     in liftF $ Trans expr col col
 

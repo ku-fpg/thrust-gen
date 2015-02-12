@@ -24,26 +24,36 @@ data Expr = Lit Integer
         | LtE Expr Expr
         | Var String
 
-data Args = Args [(ElemType, ID)]
+data ArgList = ArgList [(ElemType, ID)]
 
-data CFunctor = CFunctor ID ElemType Args Expr
+data CFunctor = CFunctor { name :: ID
+                         , retType :: ElemType
+                         , args    :: ArgList
+                         , body    :: Expr
+                         }  
 
-data HVector = Vec Int Int [(Int, Expr)]
-  deriving Show
+data Vector =    HVector { hIdent :: Int 
+                         , hSize :: Int 
+                         , hAssignments :: [(Int, Expr)]
+                         }
+               | DVector { dIdent :: Int
+                         , dSize :: Int
+                         , dAssignments :: [(Int, Expr)]
+                         }
+  deriving Show 
+
  
 data ElemType = I | D | F | B | C
 
-data Statement next = Decl HVector next 
-                    | DeclD DVector next
-                    | Trans Expr HVector next
+data Statement next = Decl Vector next 
+                    | Trans Expr Vector next
                     | Print Expr next
+                    | InnerProduct Expr Expr Vector next
   deriving (Functor)
 
 data LibGroup = StdLib | Thrust
 
 newtype CFunc = CFunc CFunctor 
-
-newtype DVector = DVector HVector
 
 -- Synonyms
 type Stmt = Free Statement
@@ -75,13 +85,12 @@ instance Show Expr where
 -- TODO add binary_function inheritance
 -- Relies on the CFunc Show instance, just replacing
 -- the id with operator()
-instance Show Args where
-  show (Args [])   = ""
-  show (Args args) = tail $ foldl (\x y -> x ++ "," ++ y) "" args'
+instance Show ArgList where
+  show (ArgList [])   = ""
+  show (ArgList args) = tail $ foldl (\x y -> x ++ "," ++ y) "" args'
       where args' = map (\(x,y) -> x ++ " " ++ y) cmap
             cmap  = map (\(x,y) -> ("const " ++ x ++ "& ",y)) conv
             conv  = map (\(x,y) -> (show x, y)) args  
-
 
 instance Show CFunctor where
   show c@(CFunctor id ret args expr) = "struct " ++ id ++ " { " 
@@ -98,9 +107,8 @@ instance Show CFunc where
                                                  ++ show expr ++ ";"
                                                  ++ "}\n")
 
-
 instance Show (Statement next) where
-  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type> v" 
+  show (Decl (HVector {hIdent = ident, hAssignments = elems} ) next) = "\tthrust::host_vector<type> v" 
                                           ++ (show ident) 
                                           ++ ";\n\t"
                                           ++ concatMap (\(ind, val) -> "v" 
@@ -111,14 +119,8 @@ instance Show (Statement next) where
                                             ++ (show val) 
                                             ++ ";\n\t") elems
 
-  show (DeclD v@(DVector d ) next) = "thrust::device_vector<type> v" 
-                                     ++  (foldl (++) "" $ tail tmp )
-    where tmp = tail 
-                $ splitOn ";" 
-                $ show 
-                $ Decl d next 
 
-  show (Trans fun (Vec ident _ _) next) = "\tthrust::transform(v" 
+  show (Trans fun (HVector {hIdent = ident}) next) = "\tthrust::transform(v" 
                                           ++ show ident 
                                           ++ ".begin(), v" 
                                           ++ show ident 
@@ -126,6 +128,10 @@ instance Show (Statement next) where
                                           ++ show fun 
                                           ++ ");"
 
+ -- show (InnerProduct fun fun (DVector (ident _ elems) next)) = "\tthrust::inner_product("
+ --                                                              ++ "v" ++ show ident ++ ".begin(),"
+ --                                                              ++ "v" ++ show ident ++ ".end(),"
+ --                                                              ++ "v" ++ show ident ++ ".begin(),"
   show (Print expr next) = "std::cout <<"
                            ++ show expr 
                            ++ "<< std::endl;"
@@ -176,5 +182,3 @@ devFuncDecl = "__device__"
 
 hostDevDecl :: String
 hostDevDecl = hostFuncDecl ++ " " ++ devFuncDecl ++ "\n"
-
-
