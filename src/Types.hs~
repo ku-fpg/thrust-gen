@@ -1,9 +1,8 @@
-{-# LANGUAGE GADTs , DeriveFunctor, OverloadedStrings #-}
+{-# LANGUAGE GADTs , DeriveFunctor #-}
 
 module Types where
 
 import Data.List
-import Data.List.Split
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -34,12 +33,12 @@ data HVector = Vec Int Int [(Int, Expr)]
 data ElemType = I | D | F | B | C
 
 data Statement next = Decl HVector next 
-                    | DeclD DVector next
+                    | Decl DVector next
                     | Trans Expr HVector next
-                    | Print Expr next
+                    | Print Expr
   deriving (Functor)
 
-data LibGroup = StdLib | Thrust
+data LibGrou = StdLib | Thrust
 
 newtype CFunc = CFunc CFunctor 
 
@@ -100,7 +99,7 @@ instance Show CFunc where
 
 
 instance Show (Statement next) where
-  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type> v" 
+  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type>v" 
                                           ++ (show ident) 
                                           ++ ";\n\t"
                                           ++ concatMap (\(ind, val) -> "v" 
@@ -110,13 +109,6 @@ instance Show (Statement next) where
                                             ++ "] = "
                                             ++ (show val) 
                                             ++ ";\n\t") elems
-
-  show (DeclD v@(DVector d ) next) = "thrust::device_vector<type> v" 
-                                     ++  (foldl (++) "" $ tail tmp )
-    where tmp = tail 
-                $ splitOn ";" 
-                $ show 
-                $ Decl d next 
 
   show (Trans fun (Vec ident _ _) next) = "\tthrust::transform(v" 
                                           ++ show ident 
