@@ -119,6 +119,26 @@ instance Show (Statement next) where
                                             ++ (show val) 
                                             ++ ";\n\t") elems
 
+  -- TODO remove this code duplication
+  show (Decl (DVector {dIdent = ident, dAssignments = elems} ) next) = "\tthrust::device_vector<type> v" 
+                                          ++ (show ident) 
+                                          ++ ";\n\t"
+                                          ++ concatMap (\(ind, val) -> "v" 
+                                            ++ (show ident) 
+                                            ++ "[" 
+                                            ++ (show ind)
+                                            ++ "] = "
+                                            ++ (show val) 
+                                            ++ ";\n\t") elems
+
+
+  show (Trans fun (DVector {dIdent = ident}) next) = "\tthrust::transform(v" 
+                                          ++ show ident 
+                                          ++ ".begin(), v" 
+                                          ++ show ident 
+                                          ++ ".end(), " 
+                                          ++ show fun 
+                                          ++ ");"
 
   show (Trans fun (HVector {hIdent = ident}) next) = "\tthrust::transform(v" 
                                           ++ show ident 
@@ -154,6 +174,9 @@ instance Num Expr where
   e1 + e2 = Add e1 e2
   e1 * e2 = Mult e1 e2
   e1 - e2 = Sub e1 e2
+  -- so ghci will leave me alone
+  abs = undefined
+  signum = undefined
 
 (<) :: Expr -> Expr -> Expr
 e1 < e2 = Lt e1 e2
