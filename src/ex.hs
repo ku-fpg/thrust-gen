@@ -1,3 +1,4 @@
+import Prelude hiding ((>))
 import Lang
 import Types
 

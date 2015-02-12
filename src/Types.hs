@@ -21,7 +21,6 @@ data Expr = Lit Integer
         | Lt Expr Expr
         | LtE Expr Expr
         | Var String
-  deriving (Eq, Ord)
 
 data Args = Args [(ElemType, ID)]
 
@@ -29,7 +28,7 @@ data CFunctor = CFunctor ID ElemType Args Expr
 
 data HVector = Vec Int Int [(Int, Expr)]
   deriving Show
-  
+ 
 data ElemType = I | D | F | B | C
 
 data Statement next = Decl HVector next 
@@ -37,6 +36,8 @@ data Statement next = Decl HVector next
   deriving (Functor)
 
 newtype CFunc = CFunc CFunctor 
+
+newtype DVector = DVector HVector
 
 -- Synonyms
 type Stmt = Free Statement
@@ -125,6 +126,17 @@ instance Num Expr where
   e1 * e2 = Mult e1 e2
   e1 - e2 = Sub e1 e2
 
+(<) :: Expr -> Expr -> Expr
+e1 < e2 = Lt e1 e2
+
+(>) :: Expr -> Expr -> Expr
+e1 > e2 = Gr e1 e2
+
+(<=) :: Expr -> Expr -> Expr
+e1 <= e2 = LtE e1 e2
+
+(>=) :: Expr -> Expr -> Expr
+e1 >= e2 = LtE e1 e2
 
 {-- END Expr Instances --------------------------------------------------}
 hostFuncDecl :: String
