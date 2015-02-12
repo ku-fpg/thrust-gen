@@ -9,10 +9,19 @@ import Control.Monad.Free
 
 {-- BEGIN Datatypes ----------------------------------------------------}
 data Expr = Lit Integer 
+        | LitC Char
+        | LitB Bool
+        | LitD Double
+        | LitF Float
         | Add Expr Expr 
         | Sub Expr Expr 
         | Mult Expr Expr 
+        | Gr Expr Expr
+        | GrE Expr Expr
+        | Lt Expr Expr
+        | LtE Expr Expr
         | Var String
+  deriving (Eq, Ord)
 
 data Args = Args [(ElemType, ID)]
 
@@ -21,8 +30,7 @@ data CFunctor = CFunctor ID ElemType Args Expr
 data HVector = Vec Int Int [(Int, Expr)]
   deriving Show
   
-data ElemType where
-  CInt :: ElemType
+data ElemType = I | D | F | B | C
 
 data Statement next = Decl HVector next 
                     | Trans Expr HVector next
@@ -45,6 +53,14 @@ instance Show Expr where
   show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Lit n)      = "(" ++ show n ++ ")"
+  show (LitB b)     = "(" ++ show b ++ ")"
+  show (LitF f)     = "(" ++ show f ++ ")"
+  show (LitD d)     = "(" ++ show d ++ ")"
+  show (LitC c)     = "(" ++ show c ++ ")"
+  show (Gr e1 e2)   = "(" ++ show e1 ++ ">" ++ show e2 ++ ")"
+  show (GrE e1 e2)  = "(" ++ show e1 ++ ">=" ++ show e2 ++ ")"
+  show (Lt e1 e2)   = "(" ++ show e1 ++ "<" ++ show e2 ++ ")"
+  show (LtE e1 e2)  = "(" ++ show e1 ++ "<=" ++ show e2 ++ ")"
   show (Var s)      = "(" ++ s ++ ")"
 
 -- TODO add binary_function inheritance
@@ -95,11 +111,14 @@ instance Show (Statement next) where
                                           ++ ");"
 
 instance Show ElemType where
-  show (CInt) = "int"    
-
+  show I  = "int"    
+  show D  = "double"
+  show F  = "float"
+  show B  = "bool"
 
 {-- END Show Instances --------------------------------------------------}
 
+{-- BEGIN Expr Instances ------------------------------------------------}
 instance Num Expr where
   fromInteger n = Lit n
   e1 + e2 = Add e1 e2
@@ -107,6 +126,7 @@ instance Num Expr where
   e1 - e2 = Sub e1 e2
 
 
+{-- END Expr Instances --------------------------------------------------}
 hostFuncDecl :: String
 hostFuncDecl = "__host__"
 
