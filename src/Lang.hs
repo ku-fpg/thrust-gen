@@ -8,13 +8,17 @@ import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
 
+getLibGrp :: Statement a -> LibGroup 
+getLibGrp (Print _) = StdLib
+getLibGrp _         = Thrust
+
 getLib :: Statement a -> String
-getLib l = "#include <thrust/" ++ getLibNm l ++ ">"
+getLib l = "#include <" ++ show $ getLibGrp l ++ "/" ++ getLibNm l ++ ".h>"
 
 getLibNm :: Statement a -> String
-getLibNm (Decl _ _)    = "host_vector.h"
-getLibNm (Trans _ _ _) = "transform.h"
-
+getLibNm (Decl _ _)    = "host_vector"
+getLibNm (Trans _ _ _) = "transform"
+getLibNm (Print _)     = "iostream"
 getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)

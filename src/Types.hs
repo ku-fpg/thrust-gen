@@ -18,6 +18,8 @@ data Expr = Lit Integer
         | Mult Expr Expr 
         | Gr Expr Expr
         | GrE Expr Expr
+        | Or Expr Expr
+        | And Expr Expr
         | Lt Expr Expr
         | LtE Expr Expr
         | Var String
@@ -33,7 +35,10 @@ data ElemType = I | D | F | B | C
 
 data Statement next = Decl HVector next 
                     | Trans Expr HVector next
+                    | Print Expr
   deriving (Functor)
+
+data LibGrou = StdLib | Thrust
 
 newtype CFunc = CFunc CFunctor 
 
@@ -62,6 +67,8 @@ instance Show Expr where
   show (GrE e1 e2)  = "(" ++ show e1 ++ ">=" ++ show e2 ++ ")"
   show (Lt e1 e2)   = "(" ++ show e1 ++ "<" ++ show e2 ++ ")"
   show (LtE e1 e2)  = "(" ++ show e1 ++ "<=" ++ show e2 ++ ")"
+  show (Or e1 e2)   = "(" ++ show e1 ++ "||" ++ show e2 ++ ")"
+  show (And e1 e2)  = "(" ++ show e1 ++ "&&" ++ show e2 ++ ")"
   show (Var s)      = "(" ++ s ++ ")"
 
 -- TODO add binary_function inheritance
@@ -111,11 +118,19 @@ instance Show (Statement next) where
                                           ++ show fun 
                                           ++ ");"
 
+  show (Print expr next) = "std::cout <<"
+                           ++ show expr 
+                           ++ "<< std::endl;"
+
 instance Show ElemType where
   show I  = "int"    
   show D  = "double"
   show F  = "float"
   show B  = "bool"
+
+instance Show LibGroup where
+  show Thrust = "thrust"
+  show StdLib = ""
 
 {-- END Show Instances --------------------------------------------------}
 
@@ -138,6 +153,12 @@ e1 <= e2 = LtE e1 e2
 (>=) :: Expr -> Expr -> Expr
 e1 >= e2 = LtE e1 e2
 
+(&&) :: Expr -> Expr -> Expr
+e1 && e2 = And e1 e2
+
+(||) :: Expr -> Expr -> Expr 
+e1 || e2 = Or e1 e2
+
 {-- END Expr Instances --------------------------------------------------}
 hostFuncDecl :: String
 hostFuncDecl = "__host__"
@@ -147,4 +168,5 @@ devFuncDecl = "__device__"
 
 hostDevDecl :: String
 hostDevDecl = hostFuncDecl ++ " " ++ devFuncDecl ++ "\n"
+
 
