@@ -8,7 +8,7 @@ import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
 
-{-getLib :: Statement a -> String
+getLib :: Statement a -> String
 getLib l = "#include <thrust/" ++ getLibNm l
 
 getLibNm :: Statement a -> String
@@ -23,14 +23,14 @@ getLibs (Pure _)                  = return []
 new :: Func Int
 new = do p <- get
          put (p+1)
-         return p-}
+         return p
 
-{-vector :: Int -> [(Int, Expr)] -> Free 
+vector :: Int -> [(Int, Expr a)] -> Func (HVector a)
 vector sz elems = do p <- new
                      let vector = Vec p sz elems
-                     liftF $ Decl (vector) vector-}
+                     liftF $ Decl (vector) vector
 
-{-transform :: (Expr -> Expr) -> HVector -> Func HVector
+transform :: (Expr a -> Expr a) -> HVector a -> Func (HVector a)
 transform fun col = let expr = fun (Var "x")
                     in liftF $ Trans expr col col
 
@@ -40,10 +40,10 @@ interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
-run :: Func () -> IO()
+run :: Func a -> IO()
 run prog = do let prog' = evalStateT prog 0
               res <- getLibs prog'
               putStrLn $ concatMap (++"\n") $ nub res
               putStrLn "int main (){"
-              interp prog'-}
+              interp prog'
 

@@ -8,12 +8,12 @@ import Control.Monad.Free
 
 data Expr a where
     D :: Double -> Expr Double
-    I :: Integer -> Expr Integer
+    I :: Int -> Expr Int
     Add :: (Expr a) -> (Expr a) -> (Expr a)
     Mult :: (Expr a) -> (Expr a) -> (Expr a)
     Sub :: (Expr a) -> (Expr a) -> (Expr a)
-    Var :: String -> Expr String
-deriving instance Show (Expr a)
+    Var :: String -> Expr a
+
 
 type ID = String
 
@@ -21,8 +21,8 @@ type ID = String
 
 {-data CFunctor = CFunctor ID ElemType Args Expr-}
 
-instance Num (Expr Integer) where
-    fromInteger n = I n
+instance Num (Expr Int) where
+    fromInteger n = I (fromIntegral n)
     lhs + rhs = Add lhs rhs
     lhs * rhs = Mult lhs rhs
     lhs - rhs = Sub lhs rhs
@@ -35,14 +35,15 @@ instance Num (Expr Double) where
 instance Fractional (Expr Double) where
     fromRational n = D (realToFrac n)
 
-{-instance Show Expr where
+instance Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
-  show (Lit n)      = "(" ++ show n ++ ")"
+  show (I n)        = show n
+  show (D n)        = show n
   show (Var s)      = "(" ++ s ++ ")"
 
-instance Show CFunctor where
+{-instance Show CFunctor where
   show (CFunctor id ret args expr) = "struct " 
                                      ++ id 
                                      ++ " { \n"
@@ -57,18 +58,29 @@ instance Show CFunctor where
                                        where args' = map (\(x,y) -> x ++ " " ++ y ) conv
                                              conv  = map (\(x,y) -> (show x, y)) args-}
 
-data HVector a = Vec Int Int [(Int, Expr a)]
-  deriving Show
+data HVector a where 
+  Vec :: Int -> Int -> [(Int, Expr a)] -> HVector a
+
+deriving instance Show (HVector a)
   
-data ElemType where
-    CInt :: ElemType
+{-data ElemType where
+    CInt :: ElemType-}
 
-data Statement a next = Decl (HVector a) next 
-                      | Trans (Expr a) (HVector a) next
-    deriving (Functor, Show)
+data Statement next where 
+  Decl :: HVector a -> next -> Statement next 
+  Trans :: (Expr a) -> HVector a -> next -> Statement next
 
-{-instance Show (Statement next) where
-  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type>v" 
+instance Functor Statement where
+  fmap f (Decl vec next) = Decl vec (f next)
+  fmap f (Trans exp vec next) = Trans exp vec (f next)
+
+
+instance Show (Statement next) where
+  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<" ++
+                                          (case head elems of
+                                            (_, I x) -> "int"
+                                            (_, D x) -> "double") 
+                                          ++ ">v" 
                                           ++ (show ident) 
                                           ++ ";\n\t"
                                           ++ concatMap (\(ind, val) -> "v" 
@@ -85,11 +97,11 @@ data Statement a next = Decl (HVector a) next
                                           ++ show ident 
                                           ++ ".end(), " 
                                           ++ show fun 
-                                          ++ ");"-}
+                                          ++ ");"
 
 {-instance Show ElemType where
     show (CInt) = "int"-}
 
---type Stmt a next = Free (Statement a) next
+type Stmt = Free Statement
 
---type Func a = StateT Int (Stmt a ())
+type Func = StateT Int Stmt
