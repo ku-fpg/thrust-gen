@@ -7,30 +7,36 @@ import Control.Monad.State
 import Control.Monad.Free
 
 data Expr a where
-    D :: Double -> Expr Double
-    I :: Int -> Expr Int
-    Add :: (Expr a) -> (Expr a) -> (Expr a)
-    Mult :: (Expr a) -> (Expr a) -> (Expr a)
-    Sub :: (Expr a) -> (Expr a) -> (Expr a)
-    Var :: String -> Expr a
-
-
-type ID = String
+  F     :: Float    -> Expr Float
+  C     :: Char     -> Expr Char
+  D     :: Double   -> Expr Double
+  I     :: Int      -> Expr Int
+  Add   :: Expr a   -> Expr a     -> Expr a
+  Mult  :: Expr a   -> Expr a     -> Expr a
+  Sub   :: Expr a   -> Expr a     -> Expr a
+  Var   :: String   -> Expr a
 
 --type Args = [(ElemType, ID)]
 
 {-data CFunctor = CFunctor ID ElemType Args Expr-}
 
 instance Num (Expr Int) where
-    fromInteger n = I (fromIntegral n)
-    lhs + rhs = Add lhs rhs
-    lhs * rhs = Mult lhs rhs
-    lhs - rhs = Sub lhs rhs
+  fromInteger = I . fromIntegral
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
+
 instance Num (Expr Double) where
-    fromInteger = D . fromInteger
-    lhs + rhs = Add lhs rhs
-    lhs * rhs = Mult lhs rhs
-    lhs - rhs = Sub lhs rhs
+  fromInteger = D . fromInteger
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
+
+instance Num (Expr Float) where
+  fromInteger = F . fromInteger
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
 
 instance Fractional (Expr Double) where
     fromRational n = D (realToFrac n)
@@ -62,9 +68,6 @@ data HVector a where
   Vec :: Int -> Int -> [(Int, Expr a)] -> HVector a
 
 deriving instance Show (HVector a)
-  
-{-data ElemType where
-    CInt :: ElemType-}
 
 data Statement next where 
   Decl :: HVector a -> next -> Statement next 
@@ -73,7 +76,6 @@ data Statement next where
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans exp vec next) = Trans exp vec (f next)
-
 
 instance Show (Statement next) where
   show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<" ++
@@ -98,9 +100,6 @@ instance Show (Statement next) where
                                           ++ ".end(), " 
                                           ++ show fun 
                                           ++ ");"
-
-{-instance Show ElemType where
-    show (CInt) = "int"-}
 
 type Stmt = Free Statement
 
