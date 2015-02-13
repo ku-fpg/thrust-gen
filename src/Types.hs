@@ -17,8 +17,13 @@ data Expr a where
   Var   :: String   -> Expr a
 
 --type Args = [(ElemType, ID)]
+type Name = String
 
-{-data CFunctor = CFunctor ID ElemType Args Expr-}
+data CFunctor a b = CFunctor Name (Expr b) (Expr a)
+
+--instance Show CFunctor where
+--  show (CFunctor name expr expr) =  
+
 
 instance Num (Expr Int) where
   fromInteger = I . fromIntegral
@@ -39,7 +44,7 @@ instance Num (Expr Float) where
   lhs - rhs = Sub lhs rhs
 
 instance Fractional (Expr Double) where
-    fromRational n = D (realToFrac n)
+  fromRational = D . realToFrac
 
 instance Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
