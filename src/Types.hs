@@ -7,6 +7,7 @@ import Control.Monad.State
 import Control.Monad.Free
 
 data Expr a where
+  B     :: Bool     -> Expr Bool
   F     :: Float    -> Expr Float
   C     :: Char     -> Expr Char
   D     :: Double   -> Expr Double
@@ -16,13 +17,73 @@ data Expr a where
   Sub   :: Expr a   -> Expr a     -> Expr a
   Var   :: String   -> Expr a
 
---type Args = [(ElemType, ID)]
 type Name = String
+type ReturnType = String
 
-data CFunctor a b = CFunctor Name (Expr b) (Expr a)
+data CFunc a = CFunc { name     :: Name
+                     , body     :: Expr a
+                     , loc      :: LocationDecl
+                     , inherit  :: InheritDecl 
+                     , funcType :: FuncType
+                     }
 
---instance Show CFunctor where
---  show (CFunctor name expr expr) =  
+-- Declares whether a functor
+-- is to be executed on the GPU or CPU
+data LocationDecl = HostDecl | DeviceDecl | Both | Neither
+data InheritDecl  = None
+data FuncType     = Regular | StructBased
+
+retType :: (Expr a) -> String
+retType (I _)   = "int"
+retType (F _)   = "float"
+retType (C _)   = "char"
+retType (B _)   = "bool"
+retType _       = error ""
+
+args :: (CFunc a) -> String
+args c = "const " 
+         ++ (retType $ (body c))
+         ++ "& a," 
+         ++ "const "
+         ++ (retType $ (body c))
+         ++ "& b"
+
+-- TODO lookup thrust decl types
+instance Show InheritDecl where
+  show l = case l of 
+            None -> ""
+
+instance Show LocationDecl where
+  show l = case l of 
+            HostDecl   -> "__host__"
+            DeviceDecl -> "__device__"
+            Both       -> "__host__ __device__"
+            Neither    -> ""
+
+instance Show (CFunc a) where
+  show func = preamble 
+              ++ (show $ body func)
+              ++ closing
+   
+    where preamble = case funcType func of
+                      StructBased -> "struct " 
+                                     ++ (name func)  
+                                     ++ (case inherit func of
+                                          None -> "")
+                                     ++ (retType $ body func)
+                                     ++ "{\n operator()(" ++ (args func) ++ ")\n{"
+                      
+                      Regular     -> (retType $ body func) 
+                                     ++ (name func) ++ "{\n"
+                                      
+          closing =  case funcType func of
+                      StructBased -> "\t}\n }\n"
+                      Regular     -> "}\n"
+
+
+--instance Eq (Expr Bool) where
+
+--instance Ord (Expr Bool) where
 
 
 instance Num (Expr Int) where
@@ -52,6 +113,7 @@ instance Show (Expr a) where
   show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (I n)        = show n
   show (D n)        = show n
+
   show (Var s)      = "(" ++ s ++ ")"
 
 {-instance Show CFunctor where
