@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs , DeriveFunctor #-}
+{-# LANGUAGE GADTs , DeriveFunctor, StandaloneDeriving, FlexibleInstances,ExistentialQuantification #-}
 
 module Types where
 
@@ -6,93 +6,147 @@ import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
+<<<<<<< HEAD
+data Expr a where
+  B     :: Bool     -> Expr Bool
+  F     :: Float    -> Expr Float
+  C     :: Char     -> Expr Char
+  D     :: Double   -> Expr Double
+  I     :: Int      -> Expr Int
+  Add   :: Expr a   -> Expr a     -> Expr a
+  Mult  :: Expr a   -> Expr a     -> Expr a
+  Sub   :: Expr a   -> Expr a     -> Expr a
+  Var   :: String   -> Expr a
 
-{-- BEGIN Datatypes ----------------------------------------------------}
-data Expr = Lit Integer 
-        | LitC Char
-        | LitB Bool
-        | LitD Double
-        | LitF Float
-        | Add Expr Expr 
-        | Sub Expr Expr 
-        | Mult Expr Expr 
-        | Gr Expr Expr
-        | GrE Expr Expr
-        | Lt Expr Expr
-        | LtE Expr Expr
-        | Var String
+type Name = String
+type ReturnType = String
 
-data Args = Args [(ElemType, ID)]
+data CFunc a = CFunc { name     :: Name
+                     , body     :: Expr a
+                     , loc      :: LocationDecl
+                     , inherit  :: InheritDecl 
+                     , funcType :: FuncType
+                     }
 
-data CFunctor = CFunctor ID ElemType Args Expr
+-- Declares whether a functor
+-- is to be executed on the GPU or CPU
+data LocationDecl = HostDecl | DeviceDecl | Both | Neither
+data InheritDecl  = None
+data FuncType     = Regular | StructBased
 
-data HVector = Vec Int Int [(Int, Expr)]
-  deriving Show
- 
-data ElemType = I | D | F | B | C
+retType :: (Expr a) -> String
+retType (I _)       = "int"
+retType (F _)       = "float"
+retType (C _)       = "char"
+retType (B _)       = "bool"
+retType (Add a _)   = retType a
+retType (Mult a _)  = retType a
+retType (Sub a _)   = retType a
+retType _           = error ""
 
-data Statement next = Decl HVector next 
-                    | Trans Expr HVector next
-  deriving (Functor)
+args :: (CFunc a) -> String
+args c = "const " 
+         ++ (retType $ (body c))
+         ++ "& a," 
+         ++ "const "
+         ++ (retType $ (body c))
+         ++ "& b"
 
-newtype CFunc = CFunc CFunctor 
+-- TODO lookup thrust decl types
+instance Show InheritDecl where
+  show l = case l of 
+            None -> ""
 
-newtype DVector = DVector HVector
+instance Show LocationDecl where
+  show l = case l of 
+            HostDecl   -> "__host__"
+            DeviceDecl -> "__device__"
+            Both       -> "__host__ __device__"
+            Neither    -> ""
 
--- Synonyms
-type Stmt = Free Statement
+instance Show (CFunc a) where
+  show func = preamble 
+              ++ "return " ++ (show $ body func) ++ ";"
+              ++ closing
+   
+    where preamble = case funcType func of
+                      StructBased -> "struct " 
+                                     ++ (name func)  
+                                     ++ (case inherit func of
+                                           None -> "")
+                                     ++ " " ++ (retType $ body func)
+                                     ++ "{\n\toperator()(" 
+                                     ++ (args func) 
+                                     ++ ") const{\n\t\t"
+                      
+                      Regular     -> (retType $ body func) 
+                                     ++ "("
+                                     ++ (args func)
+                                     ++ ")" 
+                                     ++ " " ++ (name func) ++ "{\n\t"
+                                      
+          closing =  case funcType func of
+                      StructBased -> "\n\t}\n }\n"
+                      Regular     -> "\n}\n"
 
-type Func = StateT Int Stmt
 
-type ID = String
+--instance Eq (Expr Bool) where
 
-{-- END Datatypes -------------------------------------------------------}
+--instance Ord (Expr Bool) where
 
-{-- BEGIN Show Instances ------------------------------------------------}
-instance Show Expr where
+
+instance Num (Expr Int) where
+  fromInteger = I . fromIntegral
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
+
+instance Num (Expr Double) where
+  fromInteger = D . fromInteger
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
+
+instance Num (Expr Float) where
+  fromInteger = F . fromInteger
+  lhs + rhs = Add lhs rhs
+  lhs * rhs = Mult lhs rhs
+  lhs - rhs = Sub lhs rhs
+
+instance Fractional (Expr Double) where
+  fromRational = D . realToFrac
+
+instance Fractional (Expr Float) where
+  fromRational = F . realToFrac 
+
+
+instance Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
-  show (Lit n)      = "(" ++ show n ++ ")"
-  show (LitB b)     = "(" ++ show b ++ ")"
-  show (LitF f)     = "(" ++ show f ++ ")"
-  show (LitD d)     = "(" ++ show d ++ ")"
-  show (LitC c)     = "(" ++ show c ++ ")"
-  show (Gr e1 e2)   = "(" ++ show e1 ++ ">" ++ show e2 ++ ")"
-  show (GrE e1 e2)  = "(" ++ show e1 ++ ">=" ++ show e2 ++ ")"
-  show (Lt e1 e2)   = "(" ++ show e1 ++ "<" ++ show e2 ++ ")"
-  show (LtE e1 e2)  = "(" ++ show e1 ++ "<=" ++ show e2 ++ ")"
+  show (I n)        = show n
+  show (D n)        = show n
   show (Var s)      = "(" ++ s ++ ")"
 
--- TODO add binary_function inheritance
--- Relies on the CFunc Show instance, just replacing
--- the id with operator()
-instance Show Args where
-  show (Args [])   = ""
-  show (Args args) = tail $ foldl (\x y -> x ++ "," ++ y) "" args'
-      where args' = map (\(x,y) -> x ++ " " ++ y) cmap
-            cmap  = map (\(x,y) -> ("const " ++ x ++ "& ",y)) conv
-            conv  = map (\(x,y) -> (show x, y)) args  
+data HVector a where 
+  Vec :: Int -> Int -> [(Int, Expr a)] -> HVector a
 
+deriving instance Show (HVector a)
 
-instance Show CFunctor where
-  show c@(CFunctor id ret args expr) = "struct " ++ id ++ " { " 
-                                          ++ show tmp  ++ "};\n"
-    where tmp = CFunc (CFunctor "operator()" ret args expr)
+data Statement next where 
+  Decl :: HVector a -> next -> Statement next 
+  Trans :: CFunc a -> HVector a -> next -> Statement next
 
-instance Show CFunc where
-  show (CFunc (CFunctor id ret args expr)) = hostDevDecl
-                                             ++ show ret 
-                                             ++ id
-                                             ++ ("(" ++ show args ++ ")")
-                                             ++ ("{\n" 
-                                                 ++ "return " 
-                                                 ++ show expr ++ ";"
-                                                 ++ "}\n")
-
+instance Functor Statement where
+  fmap f (Decl vec next) = Decl vec (f next)
+  fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
 
 instance Show (Statement next) where
-  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<type>v" 
+  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<" ++
+                                          (case head elems of
+                                            (_, I x) -> "int"
+                                            (_, D x) -> "double") 
+                                          ++ ">v" 
                                           ++ (show ident) 
                                           ++ ";\n\t"
                                           ++ concatMap (\(ind, val) -> "v" 
@@ -108,43 +162,7 @@ instance Show (Statement next) where
                                           ++ ".begin(), v" 
                                           ++ show ident 
                                           ++ ".end(), " 
-                                          ++ show fun 
+                                          ++ (show $ body fun)
                                           ++ ");"
 
-instance Show ElemType where
-  show I  = "int"    
-  show D  = "double"
-  show F  = "float"
-  show B  = "bool"
-
-{-- END Show Instances --------------------------------------------------}
-
-{-- BEGIN Expr Instances ------------------------------------------------}
-instance Num Expr where
-  fromInteger n = Lit n
-  e1 + e2 = Add e1 e2
-  e1 * e2 = Mult e1 e2
-  e1 - e2 = Sub e1 e2
-
-(<) :: Expr -> Expr -> Expr
-e1 < e2 = Lt e1 e2
-
-(>) :: Expr -> Expr -> Expr
-e1 > e2 = Gr e1 e2
-
-(<=) :: Expr -> Expr -> Expr
-e1 <= e2 = LtE e1 e2
-
-(>=) :: Expr -> Expr -> Expr
-e1 >= e2 = LtE e1 e2
-
-{-- END Expr Instances --------------------------------------------------}
-hostFuncDecl :: String
-hostFuncDecl = "__host__"
-
-devFuncDecl :: String
-devFuncDecl = "__device__"
-
-hostDevDecl :: String
-hostDevDecl = hostFuncDecl ++ " " ++ devFuncDecl ++ "\n"
-
+type Stmt = Free Statement
