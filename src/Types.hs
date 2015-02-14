@@ -133,7 +133,11 @@ instance Show (Statement next) where
                                           ++ ".begin(), v" 
                                           ++ show ident 
                                           ++ ".end(), " 
+                                          ++ "[]("
+                                          ++ (args fun)
+                                          ++ ") { return "
                                           ++ (show $ body fun)
+                                          ++ ";}"
                                           ++ ");"
 
 
@@ -188,11 +192,4 @@ retType (Sub a _)   = retType a
 retType _           = error ""
 
 args :: (CFunc a) -> String
-args c = "const " 
-         ++ (retType $ (body c))
-         ++ "& a," 
-         ++ "const "
-         ++ (retType $ (body c))
-         ++ "& b"
-
-
+args c = "const auto a, const auto b" 

@@ -30,9 +30,11 @@ vector sz elems = do p <- newLabel
                      let vector = HVector p sz elems
                      liftF $ Decl (vector) vector
 
-transform :: Vector a -> Expr a -> Func (Vector a) 
+transform :: Vector a -> (Expr a -> Expr a) -> Func (Vector a) 
 transform c expr = do p <- newLabel
-                      let func = CFunc ("f" ++ show p) expr Neither None StructBased  
+                      let body = expr (Var "a")
+                          name = "f" ++ show p
+                          func = CFunc name body Neither None StructBased  
                       liftF $ Trans func c c
 
 interp :: Stmt a -> IO()
