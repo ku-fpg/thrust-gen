@@ -6,6 +6,7 @@ import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
+<<<<<<< HEAD
 data Expr a where
   B     :: Bool     -> Expr Bool
   F     :: Float    -> Expr Float
@@ -165,5 +166,3 @@ instance Show (Statement next) where
                                           ++ ");"
 
 type Stmt = Free Statement
-
-type Func = StateT Int Stmt
