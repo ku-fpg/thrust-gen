@@ -34,11 +34,14 @@ data InheritDecl  = None
 data FuncType     = Regular | StructBased
 
 retType :: (Expr a) -> String
-retType (I _)   = "int"
-retType (F _)   = "float"
-retType (C _)   = "char"
-retType (B _)   = "bool"
-retType _       = error ""
+retType (I _)       = "int"
+retType (F _)       = "float"
+retType (C _)       = "char"
+retType (B _)       = "bool"
+retType (Add a _)   = retType a
+retType (Mult a _)  = retType a
+retType (Sub a _)   = retType a
+retType _           = error ""
 
 args :: (CFunc a) -> String
 args c = "const " 
@@ -62,23 +65,28 @@ instance Show LocationDecl where
 
 instance Show (CFunc a) where
   show func = preamble 
-              ++ (show $ body func)
+              ++ "return " ++ (show $ body func) ++ ";"
               ++ closing
    
     where preamble = case funcType func of
                       StructBased -> "struct " 
                                      ++ (name func)  
                                      ++ (case inherit func of
-                                          None -> "")
-                                     ++ (retType $ body func)
-                                     ++ "{\n operator()(" ++ (args func) ++ ")\n{"
+                                           None -> "")
+                                     ++ " " ++ (retType $ body func)
+                                     ++ "{\n\toperator()(" 
+                                     ++ (args func) 
+                                     ++ ") const{\n\t\t"
                       
                       Regular     -> (retType $ body func) 
-                                     ++ (name func) ++ "{\n"
+                                     ++ "("
+                                     ++ (args func)
+                                     ++ ")" 
+                                     ++ " " ++ (name func) ++ "{\n\t"
                                       
           closing =  case funcType func of
-                      StructBased -> "\t}\n }\n"
-                      Regular     -> "}\n"
+                      StructBased -> "\n\t}\n }\n"
+                      Regular     -> "\n}\n"
 
 
 --instance Eq (Expr Bool) where
@@ -107,29 +115,17 @@ instance Num (Expr Float) where
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
 
+instance Fractional (Expr Float) where
+  fromRational = F . realToFrac 
+
+
 instance Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (I n)        = show n
   show (D n)        = show n
-
   show (Var s)      = "(" ++ s ++ ")"
-
-{-instance Show CFunctor where
-  show (CFunctor id ret args expr) = "struct " 
-                                     ++ id 
-                                     ++ " { \n"
-                                 --    ++ (concat $ map (\s -> "\t" ++ s ++ ";\n") args')
-                                     ++ "\t"
-                                     ++ show ret
-                                     ++ " operator()( "
-                                     ++ (tail $ foldl (\x y -> x ++ "," ++ y) "" args')
-                                     ++ ") {\n \t\treturn"
-                                     ++ show expr
-                                     ++ "; \n \t}\n };\n"
-                                       where args' = map (\(x,y) -> x ++ " " ++ y ) conv
-                                             conv  = map (\(x,y) -> (show x, y)) args-}
 
 data HVector a where 
   Vec :: Int -> Int -> [(Int, Expr a)] -> HVector a
@@ -138,11 +134,11 @@ deriving instance Show (HVector a)
 
 data Statement next where 
   Decl :: HVector a -> next -> Statement next 
-  Trans :: (Expr a) -> HVector a -> next -> Statement next
+  Trans :: CFunc a -> HVector a -> next -> Statement next
 
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
-  fmap f (Trans exp vec next) = Trans exp vec (f next)
+  fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
 
 instance Show (Statement next) where
   show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<" ++
@@ -165,7 +161,7 @@ instance Show (Statement next) where
                                           ++ ".begin(), v" 
                                           ++ show ident 
                                           ++ ".end(), " 
-                                          ++ show fun 
+                                          ++ (show $ body fun)
                                           ++ ");"
 
 type Stmt = Free Statement

@@ -1,10 +1,12 @@
 import Lang
 import Types
 import Control.Monad.Free
+
 foo :: Func (HVector Int)
 foo = do a <- vector 20 [(0,5), (1, 20), (2, 4)]
-         b <- transform (\x -> x + 1) a
-         return b
+         return a
+--         b <- transform (\x -> x + 1) a
+--         return b
 
 {-prog :: Int -> Expr -> Func ()
 prog x y = do res <- foo
