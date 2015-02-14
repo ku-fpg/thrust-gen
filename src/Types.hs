@@ -1,24 +1,34 @@
-{-# LANGUAGE GADTs , DeriveFunctor, StandaloneDeriving, FlexibleInstances,ExistentialQuantification #-}
+{-# LANGUAGE GADTs, DeriveFunctor, StandaloneDeriving, FlexibleInstances #-}
 
 module Types where
 
+import Data.Char
 import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
+{- Synonyms ---------------------------------------------------}
+type Name = String
+type ReturnType = String
+type Stmt = Free Statement
+type Func = StateT Int Stmt 
+
+{- Data Types -------------------------------------------------}
 data Expr a where
+  -- Supported operation types
   B     :: Bool     -> Expr Bool
   F     :: Float    -> Expr Float
   C     :: Char     -> Expr Char
   D     :: Double   -> Expr Double
   I     :: Int      -> Expr Int
+
+  -- Supported operations
+  And   :: Expr a   -> Expr a     -> Expr a
+  Or    :: Expr a   -> Expr a     -> Expr a
   Add   :: Expr a   -> Expr a     -> Expr a
   Mult  :: Expr a   -> Expr a     -> Expr a
   Sub   :: Expr a   -> Expr a     -> Expr a
   Var   :: String   -> Expr a
-
-type Name = String
-type ReturnType = String
 
 data CFunc a = CFunc { name     :: Name
                      , body     :: Expr a
@@ -27,30 +37,43 @@ data CFunc a = CFunc { name     :: Name
                      , funcType :: FuncType
                      }
 
+data Vector a = HVector { label :: Int
+                        , size  :: Int
+                        , elems :: [(Int, Expr a)]
+                        }
+                | DVector { _label :: Int
+                          , _size  :: Int
+                          , _elems :: [(Int, Expr a)]
+                          }
+  deriving Show
+
+data Statement next where 
+  Decl  :: Vector a -> next -> Statement next 
+  Trans :: CFunc a -> Vector a -> next -> Statement next
+
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
 data LocationDecl = HostDecl | DeviceDecl | Both | Neither
 data InheritDecl  = None
 data FuncType     = Regular | StructBased
 
-retType :: (Expr a) -> String
-retType (I _)       = "int"
-retType (F _)       = "float"
-retType (C _)       = "char"
-retType (B _)       = "bool"
-retType (Add a _)   = retType a
-retType (Mult a _)  = retType a
-retType (Sub a _)   = retType a
-retType _           = error ""
+{- Show Instances -------------------------------------------------}
+{- Used for emitting C++ code. Could perhaps be parameterized in
+   the future to output code in other languages such as Rust      -}
 
-args :: (CFunc a) -> String
-args c = "const " 
-         ++ (retType $ (body c))
-         ++ "& a," 
-         ++ "const "
-         ++ (retType $ (body c))
-         ++ "& b"
-
+instance Show (Expr a) where
+  show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
+  show (Sub e1 e2)  = "(" ++ show e1 ++ " - " ++ show e2 ++ ")" 
+  show (Mult e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")" 
+  show (Or e1 e2)   = "(" ++ show e1 ++ " || " ++ show e2 ++ ")"
+  show (And e1 e2)  = "(" ++ show e1 ++ " && " ++ show e2 ++ ")"
+  show (Var s)      = "(" ++ s ++ ")"
+  show (I n)        = show n
+  show (B b)        = map toLower $ show b
+  show (C c)        = show c
+  show (F f)        = show f
+  show (D d)        = show d
+ 
 -- TODO lookup thrust decl types
 instance Show InheritDecl where
   show l = case l of 
@@ -89,10 +112,34 @@ instance Show (CFunc a) where
                       Regular     -> "\n}\n"
 
 
---instance Eq (Expr Bool) where
+instance Show (Statement next) where
+  show (Decl (HVector ident _ elems) next) = "\tthrust::host_vector<" ++
+                                          (case head elems of
+                                            (_, I x) -> "int"
+                                            (_, D x) -> "double") 
+                                          ++ "> v" 
+                                          ++ (show ident) 
+                                          ++ ";\n\t"
+                                          ++ concatMap (\(ind, val) -> "v" 
+                                            ++ (show ident) 
+                                            ++ "[" 
+                                            ++ (show ind)
+                                            ++ "] = "
+                                            ++ (show val) 
+                                            ++ ";\n\t") elems
 
---instance Ord (Expr Bool) where
+  show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(v" 
+                                          ++ show ident 
+                                          ++ ".begin(), v" 
+                                          ++ show ident 
+                                          ++ ".end(), " 
+                                          ++ (show $ body fun)
+                                          ++ ");"
 
+
+{- Num, Ord, Frac Instances -------------------------------------}
+{- This allows the Expr types to utilize regular arithmetic and
+   boolean operators for a more natural syntax -}
 instance Num (Expr Int) where
   fromInteger = I . fromIntegral
   lhs + rhs = Add lhs rhs
@@ -111,57 +158,41 @@ instance Num (Expr Float) where
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
 
+instance Eq (Expr Bool) where
+  (B b1) == (B b2) = b1 == b2
+
+instance Ord (Expr Bool) where
+  (B b1) `compare` (B b2) = b1 `compare` b2
+
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
 
 instance Fractional (Expr Float) where
   fromRational = F . realToFrac 
-
-instance Show (Expr a) where
-  show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
-  show (Sub e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
-  show (Mult e1 e2) = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
-  show (I n)        = show n
-  show (D n)        = show n
-  show (Var s)      = "(" ++ s ++ ")"
-
-data HVector a where 
-  Vec :: Int -> Int -> [(Int, Expr a)] -> HVector a
-
-deriving instance Show (HVector a)
-
-data Statement next where 
-  Decl :: HVector a -> next -> Statement next 
-  Trans :: CFunc a -> HVector a -> next -> Statement next
-
+ 
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
 
-instance Show (Statement next) where
-  show (Decl (Vec ident _ elems) next) = "\tthrust::host_vector<" ++
-                                          (case head elems of
-                                            (_, I x) -> "int"
-                                            (_, D x) -> "double") 
-                                          ++ ">v" 
-                                          ++ (show ident) 
-                                          ++ ";\n\t"
-                                          ++ concatMap (\(ind, val) -> "v" 
-                                            ++ (show ident) 
-                                            ++ "[" 
-                                            ++ (show ind)
-                                            ++ "] = "
-                                            ++ (show val) 
-                                            ++ ";\n\t") elems
+{- Helper functions ---------------------------------------------}
+{- Only for use in show instance, not to be exported It may be 
+   better to work these into the type more naturally later on -}
+retType :: (Expr a) -> String
+retType (I _)       = "int"
+retType (F _)       = "float"
+retType (C _)       = "char"
+retType (B _)       = "bool"
+retType (Add a _)   = retType a
+retType (Mult a _)  = retType a
+retType (Sub a _)   = retType a
+retType _           = error ""
 
-  show (Trans fun (Vec ident _ _) next) = "\tthrust::transform(v" 
-                                          ++ show ident 
-                                          ++ ".begin(), v" 
-                                          ++ show ident 
-                                          ++ ".end(), " 
-                                          ++ (show $ body fun)
-                                          ++ ");"
+args :: (CFunc a) -> String
+args c = "const " 
+         ++ (retType $ (body c))
+         ++ "& a," 
+         ++ "const "
+         ++ (retType $ (body c))
+         ++ "& b"
 
-type Stmt = Free Statement
 
-type Func = StateT Int Stmt 

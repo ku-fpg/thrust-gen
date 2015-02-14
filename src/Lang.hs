@@ -25,9 +25,9 @@ newLabel = do p <- get
               put (p+1)
               return p
 
-vector :: Int -> [(Int, Expr a)] -> Func (HVector a)
+vector :: Int -> [(Int, Expr a)] -> Func (Vector a)
 vector sz elems = do p <- newLabel
-                     let vector = Vec p sz elems
+                     let vector = HVector p sz elems
                      liftF $ Decl (vector) vector
 
 --transform :: (Expr a -> Expr a) -> HVector a -> Func (HVector a)
@@ -47,10 +47,10 @@ interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
-run :: Func a -> IO()
-run prog = do let prog' = evalStateT prog 0
-              res <- getLibs prog'
-              putStrLn $ concatMap (++"\n") $ nub res
-              putStrLn "int main (){"
-              interp prog'
+generate :: Func a -> IO()
+generate prog = do let prog' = evalStateT prog 0
+                   res <- getLibs prog'
+                   putStrLn $ concatMap (++"\n") $ nub res
+                   putStrLn "int main (){"
+                   interp prog'
 
