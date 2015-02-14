@@ -6,7 +6,6 @@ import Data.List
 import Control.Monad.State
 import Control.Monad.Free
 
-<<<<<<< HEAD
 data Expr a where
   B     :: Bool     -> Expr Bool
   F     :: Float    -> Expr Float
@@ -94,7 +93,6 @@ instance Show (CFunc a) where
 
 --instance Ord (Expr Bool) where
 
-
 instance Num (Expr Int) where
   fromInteger = I . fromIntegral
   lhs + rhs = Add lhs rhs
@@ -118,7 +116,6 @@ instance Fractional (Expr Double) where
 
 instance Fractional (Expr Float) where
   fromRational = F . realToFrac 
-
 
 instance Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
@@ -166,3 +163,5 @@ instance Show (Statement next) where
                                           ++ ");"
 
 type Stmt = Free Statement
+
+type Func = StateT Int Stmt 
