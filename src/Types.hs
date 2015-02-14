@@ -197,5 +197,7 @@ retType (Mult a _)  = retType a
 retType (Sub a _)   = retType a
 retType _           = error ""
 
+-- TODO work on this
+-- Need to clean up multi arg lambdas
 args :: (CFunc a) -> String
 args c = "const auto a, const auto b" 
