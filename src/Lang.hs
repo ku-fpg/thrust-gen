@@ -8,6 +8,16 @@ import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
 
+
+-- Not sure if we'll need more,
+-- I wish we had variadics, I couldn't
+-- figure out how to do a general reduce with a fold
+reduce :: (Expr a -> Expr a) -> Expr a
+reduce fn = fn (Var "a") 
+
+reduce2 :: (Expr a -> Expr a -> Expr a) -> Expr a
+reduce2 fn = (fn (Var "a")) (Var "b")
+
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
