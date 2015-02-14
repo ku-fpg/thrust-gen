@@ -12,6 +12,7 @@ type Name = String
 type ReturnType = String
 type Stmt = Free Statement
 type Func = StateT Int Stmt 
+type LibName = String
 
 {- Data Types -------------------------------------------------}
 data Expr a where
@@ -56,6 +57,7 @@ data Statement next where
 data LocationDecl = HostDecl | DeviceDecl | Both | Neither
 data InheritDecl  = None
 data FuncType     = Regular | StructBased
+data ImportDecl   = Stdlib | Thrust
 
 {- Show Instances -------------------------------------------------}
 {- Used for emitting C++ code. Could perhaps be parameterized in
@@ -74,6 +76,10 @@ instance Show (Expr a) where
   show (F f)        = show f
   show (D d)        = show d
  
+instance Show ImportDecl where
+  show Thrust = "thrust/"
+  show Stdlib = ""
+
 -- TODO lookup thrust decl types
 instance Show InheritDecl where
   show l = case l of 

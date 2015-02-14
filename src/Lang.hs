@@ -8,12 +8,13 @@ import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
 
-getLib :: Statement a -> String
-getLib l = "#include <thrust/" ++ getLibNm l ++ ".h>"
+getLibInfo :: Statement a -> [(ImportDecl, LibName)]
+getLibInfo (Decl _ _)    = [(Thrust, "host_vector")]
+getLibInfo (Trans _ _ _) = [(Stdlib,"functional"), (Thrust,"transform")]
 
-getLibNm :: Statement a -> String
-getLibNm (Decl _ _)    = "host_vector"
-getLibNm (Trans _ _ _) = "transform"
+getLib :: Statement a -> String
+getLib l = concat $ map 
+            (\(x,y) -> "#include <" ++ show x ++ y ++ ".h>\n") (getLibInfo l) 
 
 getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
