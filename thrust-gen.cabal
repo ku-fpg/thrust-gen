@@ -17,9 +17,26 @@ extra-source-files:  README.md
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Types, Lang, WordCount
+  exposed-modules:     Types, Lang
   -- other-modules:       
-  other-extensions:    GADTs, DeriveFunctor, StandaloneDeriving, FlexibleInstances, ExistentialQuantification, KindSignatures
-  build-depends:       base >=4.7 && <4.8, mtl >=2.1 && <2.2, free >=4.10 && <4.11
+
+  other-extensions:    GADTs, 
+                       DeriveFunctor, 
+                       StandaloneDeriving, 
+                       FlexibleInstances, 
+                       ExistentialQuantification, 
+                       KindSignatures
+
+  build-depends:       base >=4.7 && <4.8, 
+                       mtl >=2.1 && <2.2, 
+                       free >=4.10 && <4.11
+
   hs-source-dirs:      src
+
   default-language:    Haskell2010
+
+--executable thrust-gen
+--  hs-source-dirs:      thrust-gen-cli 
+--  default-language:    Haskell2010
+--  main-is         :    thrust-gen.hs
+--  other-modules   :    Types, Lang
