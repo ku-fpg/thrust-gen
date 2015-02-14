@@ -30,16 +30,10 @@ vector sz elems = do p <- newLabel
                      let vector = HVector p sz elems
                      liftF $ Decl (vector) vector
 
---transform :: (Expr a -> Expr a) -> HVector a -> Func (HVector a)
---transform fun col = let expr = cfunc fun (Var "x")
---                    in  let cfun = retract $ cfunc expr either None StructBased 
- --                       in liftF $ Trans cfun col col
-
---cfunc :: (Expr a) -> LocationDecl -> InheritDecl -> FuncType -> Func (CFunc a)
---cfunc b l i f = do label <- newLabel
---                   let strLabel = "f" ++ show newLabel 
---                       functor  = CFunc strLabel b l i f
---                   liftF $ functor 
+transform :: Vector a -> Expr a -> Func (Vector a) 
+transform c expr = do p <- newLabel
+                      let func = CFunc ("f" ++ show p) expr Neither None StructBased  
+                      liftF $ Trans func c c
 
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
