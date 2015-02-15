@@ -47,14 +47,13 @@ transform c expr = do p <- newLabel
                           func = CFunc name body Neither None StructBased  
                       liftF $ Trans func c c
 
-initV :: Expr a -> a
 
-fold :: Vector a -> (Expr a -> Expr a -> Expr a) -> Func (Vector a)
-fold c expr = do p <- newLabel
-                 let body = (expr (Var "a")) (Var "b")
-                     name = "f" ++ show p
-                     func = CFunc name body Neither None StructBased 
-                 liftF $ Fold func (initV body) c c
+--fold :: Vector a -> (Expr a -> Expr a -> Expr a) -> Func (Vector a)
+--fold c expr = do p <- newLabel
+--                 let body = (expr (Var "a")) (Var "b")
+--                     name = "f" ++ show p
+--                     func = CFunc name body Neither None StructBased 
+--                liftF $ Fold func (initV body) c c
                 
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
