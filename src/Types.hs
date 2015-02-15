@@ -1,4 +1,7 @@
-{-# LANGUAGE GADTs, DeriveFunctor, StandaloneDeriving, FlexibleInstances #-}
+{-# LANGUAGE GADTs #-} 
+{-# LANGUAGE DeriveFunctor #-} 
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 module Types where
 
