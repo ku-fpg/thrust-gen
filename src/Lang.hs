@@ -1,4 +1,9 @@
-{-# LANGUAGE GADTs, KindSignatures, StandaloneDeriving, DeriveFunctor #-}
+{-# LANGUAGE ScopedTypeVariables #-} 
+{-# LANGUAGE InstanceSigs #-}  
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveFunctor #-}
 
 module Lang where
 
@@ -7,16 +12,6 @@ import Data.List
 import Data.Maybe
 import Control.Monad.State
 import Control.Monad.Free
-
-
--- Not sure if we'll need more,
--- I wish we had variadics, I couldn't
--- figure out how to do a general reduce with a fold
-reduce :: (Expr a -> Expr a) -> Expr a
-reduce fn = fn (Var "a") 
-
-reduce2 :: (Expr a -> Expr a -> Expr a) -> Expr a
-reduce2 fn = (fn (Var "a")) (Var "b")
 
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
@@ -47,11 +42,20 @@ vector sz elems = do p <- newLabel
 
 transform :: Vector a -> (Expr a -> Expr a) -> Func (Vector a) 
 transform c expr = do p <- newLabel
-                      let body = expr (Var "a")
+                      let body = (expr (Var "a"))
                           name = "f" ++ show p
                           func = CFunc name body Neither None StructBased  
                       liftF $ Trans func c c
 
+initV :: Expr a -> a
+
+fold :: Vector a -> (Expr a -> Expr a -> Expr a) -> Func (Vector a)
+fold c expr = do p <- newLabel
+                 let body = (expr (Var "a")) (Var "b")
+                     name = "f" ++ show p
+                     func = CFunc name body Neither None StructBased 
+                 liftF $ Fold func (initV body) c c
+                
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next

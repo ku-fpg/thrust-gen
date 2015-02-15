@@ -51,6 +51,7 @@ data Vector a = HVector { label :: Int
 data Statement next where 
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
+  Fold  :: CFunc a -> Vector a -> a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
