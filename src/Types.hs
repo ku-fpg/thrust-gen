@@ -58,7 +58,7 @@ data Statement next where
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
   Cout  :: Vector a -> next -> Statement next
-  Fold  :: (Show a) => String -> CFunc a -> Vector a -> a -> next -> Statement next
+  Fold  :: (Show a) => String -> CFunc a -> Vector a -> Expr a -> next -> Statement next
 
 
 -- Declares whether a functor
