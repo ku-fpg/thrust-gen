@@ -40,6 +40,7 @@ data CFunc a = CFunc { name     :: Name
                      , loc      :: LocationDecl
                      , inherit  :: InheritDecl 
                      , funcType :: FuncType
+                     , numArgs  :: Int
                      }
 
 data Vector a = HVector { label :: String
@@ -55,8 +56,9 @@ data Vector a = HVector { label :: String
 data Statement next where 
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
-  Fold  :: CFunc a -> Vector a -> a -> next -> Statement next
   Cout  :: Vector a -> next -> Statement next
+  Fold  :: (Show a) => CFunc a -> Vector a -> a -> next -> Statement next
+
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -111,12 +113,18 @@ instance Show (CFunc a) where
                                            None -> "")
                                      ++ " {\n\t"
                                      ++ (retType $ body func) ++ " operator()(" 
-                                     ++ (args func) 
+                                     ++ (case numArgs func of 
+                                          1 -> args func
+                                          2 -> args2 func
+                                          3 -> args3 func) 
                                      ++ ") const{\n\t\t"
 
                       Regular     -> (retType $ body func) 
                                      ++ "("
-                                     ++ (args2 func)
+                                     ++ (case numArgs func of
+                                          1 -> args func
+                                          2 -> args2 func
+                                          3 -> args3 func) 
                                      ++ ")" 
                                      ++ " " ++ (name func) ++ "{\n\t"
 
@@ -124,6 +132,9 @@ instance Show (CFunc a) where
                       StructBased -> "\n\t}\n};\n"
                       Regular     -> "\n}\n"
 
+
+iters :: String -> (String,String)
+iters ident = (ident ++ ".begin()", ident ++ ".end()")
 
 instance Show (Statement next) where
   show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<"
@@ -156,6 +167,12 @@ instance Show (Statement next) where
                                           ++ "[i] << \" \";}\n"
                                           ++ "\tstd::cout << std::endl;"
 
+  show (Fold fun (HVector ident _ _) init next) = "\tthrust::reduce("
+                                                  ++ (fst $ iters ident) ++ ", "
+                                                  ++ (snd $ iters ident) ++ ", "
+                                                  ++ (show init) ++ ", "
+                                                  ++ (name fun) ++ "());\n"
+
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
    boolean operators for a more natural syntax -}
@@ -183,6 +200,14 @@ instance Eq (Expr Bool) where
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
 
+instance Eq (Expr Int) where
+  (I i1) == (I i2) = i1 == i2
+
+instance Ord (Expr Int) where
+  (I i1) `compare` (I i2) = i1 `compare` i2
+
+
+
 (.&&) :: Expr Bool -> Expr Bool -> Expr Bool
 b1 .&& b2 = And b1 b2
 
@@ -191,6 +216,19 @@ b1 .|| b2 = Or b1 b2
 
 (.!) :: () -> Expr Bool -> Expr Bool
 () .! b1 = Not b1
+
+(.<) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .< (I i2) = B $ i1 < i2
+
+(.>) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .> (I i2) = B $ i1 > i2
+
+(.<=) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .<= (I i2) = B $ i1 <= i2
+
+(.=>) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .=> (I i2) = B $ i1 >= i2
+
 
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
@@ -202,10 +240,20 @@ instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
   fmap f (Cout v next) = Cout v (f next) 
+  fmap f (Fold cfunc vec val next) = Fold cfunc vec val (f next) 
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
    better to work these into the type more naturally later on -}
+
+-- Used to clean up lambda exprs
+-- allows us to write (\x -> true && false && (x < 4)
+true :: Expr Bool
+true = B True
+
+false :: Expr Bool
+false = B False
+
 retType :: (Expr a) -> String
 retType (I _)       = "int"
 retType (F _)       = "float"
