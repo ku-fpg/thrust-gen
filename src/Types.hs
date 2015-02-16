@@ -176,6 +176,14 @@ instance Eq (Expr Bool) where
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
 
+instance Eq (Expr Int) where
+  (I i1) == (I i2) = i1 == i2
+
+instance Ord (Expr Int) where
+  (I i1) `compare` (I i2) = i1 `compare` i2
+
+
+
 (.&&) :: Expr Bool -> Expr Bool -> Expr Bool
 b1 .&& b2 = And b1 b2
 
@@ -184,6 +192,19 @@ b1 .|| b2 = Or b1 b2
 
 (.!) :: () -> Expr Bool -> Expr Bool
 () .! b1 = Not b1
+
+(.<) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .< (I i2) = B $ i1 < i2
+
+(.>) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .> (I i2) = B $ i1 > i2
+
+(.<=) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .<= (I i2) = B $ i1 <= i2
+
+(.=>) :: Expr Int -> Expr Int -> Expr Bool
+(I i1) .=> (I i2) = B $ i1 >= i2
+
 
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
@@ -198,6 +219,15 @@ instance Functor Statement where
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
    better to work these into the type more naturally later on -}
+
+-- Used to clean up lambda exprs
+-- allows us to write (\x -> true && false && (x < 4)
+true :: Expr Bool
+true = B True
+
+false :: Expr Bool
+false = B False
+
 retType :: (Expr a) -> String
 retType (I _)       = "int"
 retType (F _)       = "float"
