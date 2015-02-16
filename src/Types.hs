@@ -56,7 +56,7 @@ data Vector a = HVector { label :: String
 data Statement next where 
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
-  Fold  :: CFunc a -> Vector a -> a -> next -> Statement next
+  Fold  :: (Show a) => CFunc a -> Vector a -> a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -155,8 +155,9 @@ instance Show (Statement next) where
                                           ++ (name fun) ++ "());\n"
 
   show (Fold fun (HVector ident _ _) init next) = "\tthrust::reduce("
-                                                  ++ (fst $ iters ident) ++ ","
-                                                  ++ (snd $ iters ident) ++ ","
+                                                  ++ (fst $ iters ident) ++ ", "
+                                                  ++ (snd $ iters ident) ++ ", "
+                                                  ++ (show init) ++ ", "
                                                   ++ (name fun) ++ "());\n"
 
 {- Num, Ord, Frac Instances -------------------------------------}
