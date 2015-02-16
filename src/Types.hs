@@ -41,11 +41,11 @@ data CFunc a = CFunc { name     :: Name
                      , funcType :: FuncType
                      }
 
-data Vector a = HVector { label :: Int
+data Vector a = HVector { label :: String
                         , size  :: Int
                         , elems :: [(Int, Expr a)]
                         }
-                | DVector { _label :: Int
+                | DVector { _label :: String
                           , _size  :: Int
                           , _elems :: [(Int, Expr a)]
                           }
@@ -127,23 +127,24 @@ instance Show (Statement next) where
                                           (case head elems of
                                             (_, I x) -> "int"
                                             (_, D x) -> "double") 
-                                          ++ "> v" 
-                                          ++ (show ident) 
+                                          ++ "> " 
+                                          ++ ident 
                                           ++ "(" ++ show sz ++ ")"
                                           ++ ";\n\t"
-                                          ++ concatMap (\(ind, val) -> "v" 
-                                            ++ (show ident) 
+                                          ++ concatMap (\(ind, val) -> ident
                                             ++ "[" 
                                             ++ (show ind)
                                             ++ "] = "
                                             ++ (show val) 
                                             ++ ";\n\t") elems
 
-  show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(v" 
-                                          ++ show ident 
-                                          ++ ".begin(), v" 
-                                          ++ show ident 
-                                          ++ ".end(), " 
+  show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
+                                          ++ ident 
+                                          ++ ".begin(), " 
+                                          ++ ident 
+                                          ++ ".end(), "
+                                          ++ ident 
+                                          ++ ".begin(), " 
                                           ++ (name fun)
                                           ++ "());\n"
                                           {-++ "[]("

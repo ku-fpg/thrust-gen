@@ -17,7 +17,7 @@ getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
 
 getLib :: Statement a -> String
-getLib l = concat $ map 
+getLib l = concatMap 
             (\(xs,y) -> "#include <" 
                         ++ (concat $ map show xs) 
                         ++ y 
@@ -41,7 +41,8 @@ newLabel = do p <- get
 
 vector :: Int -> [(Int, Expr a)] -> Func (Vector a)
 vector sz elems = do p <- newLabel
-                     let vector = HVector p sz elems
+                     let name = "v" ++ show p
+                         vector = HVector name sz elems
                      liftF $ Decl (vector) vector
 
 transform :: Vector a -> (Expr a -> Expr a) -> Func (Vector a) 
@@ -68,7 +69,7 @@ interp (Pure _)    = putStrLn "}"
 generate :: Func a -> IO()
 generate prog = do let prog' = evalStateT prog 0
                    res <- getLibs prog'
-                   putStrLn $ concatMap (++"\n") $ nub res
+                   putStrLn $ concatMap (++"") $ nub res
                    getStructs prog'
                    putStrLn "int main (){"
                    interp prog'
