@@ -108,12 +108,12 @@ instance Show (CFunc a) where
                                            None -> "")
                                      ++ " {\n\t "
                                      ++ (retType $ body func) ++ " operator()(" 
-                                     ++ (args func) 
+                                     ++ (args2 func) 
                                      ++ ") const{\n\t\t"
 
                       Regular     -> (retType $ body func) 
                                      ++ "("
-                                     ++ (args func)
+                                     ++ (args2 func)
                                      ++ ")" 
                                      ++ " " ++ (name func) ++ "{\n\t"
 
@@ -181,6 +181,9 @@ instance Eq (Expr Bool) where
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
 
+(.&&) :: Expr Bool -> Expr Bool -> Expr Bool
+b1 .&& b2 = And b1 b2
+
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
 
@@ -202,10 +205,14 @@ retType (B _)       = "bool"
 retType (Add a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (Mult a b)  = concat $ nub $ [retType a] ++ [retType b]
 retType (Sub a b)   = concat $ nub $ [retType a] ++ [retType b]
+retType (And a b)   = concat $ nub $ [retType a] ++ [retType b]
+retType (Or a b)    = concat $ nub $ [retType a] ++ [retType b]
 retType (Var a)     = ""
 retType _           = error "Unknown expr value"
 
 -- TODO work on this
 -- Need to clean up multi arg lambdas
-args :: (CFunc a) -> String
-args c = "const auto a, const auto b" 
+args2 :: (CFunc a) -> String
+args2 fn = "const " ++ retType b ++ ", "
+           ++ "const " ++ retType b 
+  where b = body fn
