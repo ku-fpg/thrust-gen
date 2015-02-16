@@ -29,6 +29,7 @@ data Expr a where
   -- Supported operations
   And   :: Expr a   -> Expr a     -> Expr a
   Or    :: Expr a   -> Expr a     -> Expr a
+  Not   :: Expr a   -> Expr a 
   Add   :: Expr a   -> Expr a     -> Expr a
   Mult  :: Expr a   -> Expr a     -> Expr a
   Sub   :: Expr a   -> Expr a     -> Expr a
@@ -73,6 +74,7 @@ instance Show (Expr a) where
   show (Mult e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")" 
   show (Or e1 e2)   = "(" ++ show e1 ++ " || " ++ show e2 ++ ")"
   show (And e1 e2)  = "(" ++ show e1 ++ " && " ++ show e2 ++ ")"
+  show (Not e1)     = "( !" ++ show e1 ++ ")"
   show (Var s)      = s
   show (I n)        = show n
   show (B b)        = map toLower $ show b
@@ -125,8 +127,10 @@ instance Show (CFunc a) where
 instance Show (Statement next) where
   show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<" ++
                                           (case head elems of
-                                            (_, I x) -> "int"
-                                            (_, D x) -> "double") 
+                                            (_, I _) -> "int"
+                                            (_, D _) -> "double"
+                                            (_, B _) -> "bool"
+                                            (_, C _) -> "char" ) 
                                           ++ "> v" 
                                           ++ (show ident) 
                                           ++ "(" ++ show sz ++ ")"
@@ -184,6 +188,12 @@ instance Ord (Expr Bool) where
 (.&&) :: Expr Bool -> Expr Bool -> Expr Bool
 b1 .&& b2 = And b1 b2
 
+(.||) :: Expr Bool -> Expr Bool -> Expr Bool
+b1 .|| b2 = Or b1 b2
+
+(.!) :: Expr Bool -> Expr Bool
+(.!) b1 = Not b1
+
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
 
@@ -207,6 +217,7 @@ retType (Mult a b)  = concat $ nub $ [retType a] ++ [retType b]
 retType (Sub a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (And a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (Or a b)    = concat $ nub $ [retType a] ++ [retType b]
+retType (Not a)     = concat $ nub $ [retType a]
 retType (Var a)     = ""
 retType _           = error "Unknown expr value"
 
