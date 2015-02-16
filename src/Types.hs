@@ -73,7 +73,7 @@ instance Show (Expr a) where
   show (Mult e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")" 
   show (Or e1 e2)   = "(" ++ show e1 ++ " || " ++ show e2 ++ ")"
   show (And e1 e2)  = "(" ++ show e1 ++ " && " ++ show e2 ++ ")"
-  show (Var s)      = "(" ++ s ++ ")"
+  show (Var s)      = s
   show (I n)        = show n
   show (B b)        = map toLower $ show b
   show (C c)        = show c
@@ -106,29 +106,30 @@ instance Show (CFunc a) where
                                      ++ (name func)  
                                      ++ (case inherit func of
                                            None -> "")
-                                     ++ " " ++ (retType $ body func)
-                                     ++ "{\n\toperator()(" 
+                                     ++ " {\n\t "
+                                     ++ (retType $ body func) ++ " operator()(" 
                                      ++ (args func) 
                                      ++ ") const{\n\t\t"
-                      
+
                       Regular     -> (retType $ body func) 
                                      ++ "("
                                      ++ (args func)
                                      ++ ")" 
                                      ++ " " ++ (name func) ++ "{\n\t"
-                                      
+
           closing =  case funcType func of
-                      StructBased -> "\n\t}\n }\n"
+                      StructBased -> "\n\t}\n };\n"
                       Regular     -> "\n}\n"
 
 
 instance Show (Statement next) where
-  show (Decl (HVector ident _ elems) next) = "\tthrust::host_vector<" ++
+  show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<" ++
                                           (case head elems of
                                             (_, I x) -> "int"
                                             (_, D x) -> "double") 
                                           ++ "> v" 
                                           ++ (show ident) 
+                                          ++ "(" ++ show sz ++ ")"
                                           ++ ";\n\t"
                                           ++ concatMap (\(ind, val) -> "v" 
                                             ++ (show ident) 
@@ -143,12 +144,14 @@ instance Show (Statement next) where
                                           ++ ".begin(), v" 
                                           ++ show ident 
                                           ++ ".end(), " 
-                                          ++ "[]("
+                                          ++ (name fun)
+                                          ++ "());\n"
+                                          {-++ "[]("
                                           ++ (args fun)
                                           ++ ") { return "
                                           ++ (show $ body fun)
                                           ++ ";}"
-                                          ++ ");"
+                                          ++ ");"-}
 
 
 {- Num, Ord, Frac Instances -------------------------------------}
@@ -196,10 +199,11 @@ retType (I _)       = "int"
 retType (F _)       = "float"
 retType (C _)       = "char"
 retType (B _)       = "bool"
-retType (Add a _)   = retType a
-retType (Mult a _)  = retType a
-retType (Sub a _)   = retType a
-retType _           = error ""
+retType (Add a b)   = concat $ nub $ [retType a] ++ [retType b]
+retType (Mult a b)  = concat $ nub $ [retType a] ++ [retType b]
+retType (Sub a b)   = concat $ nub $ [retType a] ++ [retType b]
+retType (Var a)     = ""
+retType _           = error "Unknown expr value"
 
 -- TODO work on this
 -- Need to clean up multi arg lambdas

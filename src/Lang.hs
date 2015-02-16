@@ -6,7 +6,6 @@
 {-# LANGUAGE DeriveFunctor #-}
 
 module Lang where
-
 import Types
 import Data.List
 import Data.Maybe
@@ -29,6 +28,11 @@ getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
 getLibs (Pure _)                  = return []
+
+getStructs :: Stmt a -> IO ()
+getStructs (Free d@(Decl _ next)) = getStructs next
+getStructs (Free t@(Trans func _ next)) = putStrLn (show func) >> getStructs next
+getStructs (Pure _)                    = putStr ""
 
 newLabel :: Func Int
 newLabel = do p <- get
@@ -65,6 +69,7 @@ generate :: Func a -> IO()
 generate prog = do let prog' = evalStateT prog 0
                    res <- getLibs prog'
                    putStrLn $ concatMap (++"\n") $ nub res
+                   getStructs prog'
                    putStrLn "int main (){"
                    interp prog'
 
