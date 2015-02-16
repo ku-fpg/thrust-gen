@@ -40,6 +40,7 @@ data CFunc a = CFunc { name     :: Name
                      , loc      :: LocationDecl
                      , inherit  :: InheritDecl 
                      , funcType :: FuncType
+                     , numArgs  :: Int
                      }
 
 data Vector a = HVector { label :: String
@@ -110,12 +111,18 @@ instance Show (CFunc a) where
                                            None -> "")
                                      ++ " {\n\t"
                                      ++ (retType $ body func) ++ " operator()(" 
-                                     ++ (args func) 
+                                     ++ (case numArgs func of 
+                                          1 -> args func
+                                          2 -> args2 func
+                                          3 -> args3 func) 
                                      ++ ") const{\n\t\t"
 
                       Regular     -> (retType $ body func) 
                                      ++ "("
-                                     ++ (args2 func)
+                                     ++ (case numArgs func of
+                                          1 -> args func
+                                          2 -> args2 func
+                                          3 -> args3 func) 
                                      ++ ")" 
                                      ++ " " ++ (name func) ++ "{\n\t"
 
@@ -123,6 +130,9 @@ instance Show (CFunc a) where
                       StructBased -> "\n\t}\n};\n"
                       Regular     -> "\n}\n"
 
+
+iters :: String -> (String,String)
+iters ident = (ident ++ ".begin()", ident ++ ".end()")
 
 instance Show (Statement next) where
   show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<"
@@ -139,15 +149,15 @@ instance Show (Statement next) where
                                             ++ ";\n\t") elems
 
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
-                                          ++ ident 
-                                          ++ ".begin(), " 
-                                          ++ ident 
-                                          ++ ".end(), "
-                                          ++ ident 
-                                          ++ ".begin(), " 
-                                          ++ (name fun)
-                                          ++ "());\n"
-                                          
+                                          ++ (fst $ iters ident) ++ ", " 
+                                          ++ (snd $ iters ident) ++ ", " 
+                                          ++ (fst $ iters ident) ++ ", " 
+                                          ++ (name fun) ++ "());\n"
+
+  show (Fold fun (HVector ident _ _) init next) = "\tthrust::reduce("
+                                                  ++ (fst $ iters ident) ++ ","
+                                                  ++ (snd $ iters ident) ++ ","
+                                                  ++ (name fun) ++ "());\n"
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
@@ -215,6 +225,7 @@ instance Fractional (Expr Float) where
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
+  fmap f (Fold cfunc vec val next) = Fold cfunc vec val (f next) 
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 

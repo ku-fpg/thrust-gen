@@ -15,6 +15,7 @@ import Control.Monad.Free
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
+getLibInfo (Fold _ _ _ _) = [([Thrust], "reduce")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -25,14 +26,16 @@ getLib l = concatMap
                         ++ ">\n") (getLibInfo l) 
 
 getLibs :: Stmt a -> IO [String]
-getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
-getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
-getLibs (Pure _)                  = return []
+getLibs (Free d@(Decl _ next))     = liftM2 (++) (return $ [getLib d]) (getLibs next)
+getLibs (Free t@(Trans _ _ next))  = liftM2 (++) (return $ [getLib t]) (getLibs next)
+getLibs (Free f@(Fold _ _ _ next)) = liftM2 (++) (return $ [getLib f]) (getLibs next)
+getLibs (Pure _)                   = return []
 
 getStructs :: Stmt a -> IO ()
-getStructs (Free d@(Decl _ next)) = getStructs next
-getStructs (Free t@(Trans func _ next)) = putStrLn (show func) >> getStructs next
-getStructs (Pure _)                    = putStr ""
+getStructs (Free d@(Decl _ next))         = getStructs next
+getStructs (Free t@(Trans func _ next))   = putStrLn (show func) >> getStructs next
+getStructs (Free f@(Fold func _ _ next))  = putStrLn (show func) >> getStructs next
+getStructs (Pure _)                       = putStr ""
 
 newLabel :: Func Int
 newLabel = do p <- get
@@ -49,20 +52,20 @@ transform :: Vector a -> (Expr a -> Expr a) -> Func (Vector a)
 transform c expr = do p <- newLabel
                       let body = (expr (Var "a"))
                           name = "f" ++ show p
-                          func = CFunc name body Neither None StructBased  
+                          func = CFunc name body Neither None StructBased 1 
                       liftF $ Trans func c c
 
 
---fold :: Vector a -> (Expr a -> Expr a -> Expr a) -> Func (Vector a)
---fold c expr = do p <- newLabel
---                 let body = (expr (Var "a")) (Var "b")
---                     name = "f" ++ show p
---                     func = CFunc name body Neither None StructBased 
---                liftF $ Fold func (initV body) c c
+reduce c initV expr = do p <- newLabel
+                         let body = (expr (Var "a")) (Var "b")
+                             name = "f" ++ show p
+                             func = CFunc name body Neither None StructBased 2
+                         liftF $ Fold func c initV c
                 
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
+interp (Free f@(Fold fun v _ next)) = putStrLn (show f) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
