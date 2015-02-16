@@ -110,7 +110,7 @@ instance Show (CFunc a) where
                                            None -> "")
                                      ++ " {\n\t "
                                      ++ (retType $ body func) ++ " operator()(" 
-                                     ++ (args2 func) 
+                                     ++ (args func) 
                                      ++ ") const{\n\t\t"
 
                       Regular     -> (retType $ body func) 
@@ -125,12 +125,8 @@ instance Show (CFunc a) where
 
 
 instance Show (Statement next) where
-  show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<" ++
-                                          (case head elems of
-                                            (_, I _) -> "int"
-                                            (_, D _) -> "double"
-                                            (_, B _) -> "bool"
-                                            (_, C _) -> "char" ) 
+  show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<" 
+                                          ++ (retType $ snd $ head elems) 
                                           ++ "> v" 
                                           ++ (show ident) 
                                           ++ "(" ++ show sz ++ ")"
@@ -150,13 +146,7 @@ instance Show (Statement next) where
                                           ++ ".end(), " 
                                           ++ (name fun)
                                           ++ "());\n"
-                                          {-++ "[]("
-                                          ++ (args fun)
-                                          ++ ") { return "
-                                          ++ (show $ body fun)
-                                          ++ ";}"
-                                          ++ ");"-}
-
+                                          
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
@@ -221,9 +211,29 @@ retType (Not a)     = concat $ nub $ [retType a]
 retType (Var a)     = ""
 retType _           = error "Unknown expr value"
 
--- TODO work on this
--- Need to clean up multi arg lambdas
+
+idents :: (Expr a) -> [String]
+idents body = case body of 
+                (Var a)     -> [a]
+                (Add a b)   -> idents a ++ idents b
+                (Or  a b)   -> idents a ++ idents b
+                (And a b)   -> idents a ++ idents b
+                (Not a )    -> idents a
+                (Mult a b)  -> idents a ++ idents b
+                (Sub a b)   -> idents a ++ idents b
+                _           -> []
+
+args :: (CFunc a) -> String
+args fn = "const " ++ retType b ++ " " ++ (idents b !! 0)
+  where b = body fn
+
 args2 :: (CFunc a) -> String
-args2 fn = "const " ++ retType b ++ ", "
-           ++ "const " ++ retType b 
+args2 fn = "const " ++ retType b ++ " " ++ (idents b !! 0) ++ ", "
+           ++ "const " ++ retType b ++ " " ++ (idents b !! 1) 
+  where b = body fn
+
+args3 :: (CFunc a) -> String
+args3 fn = "const " ++ retType b ++ " " ++ (idents b !! 0) ++ ", "
+           ++ "const " ++ retType b ++ " " ++ (idents b !! 1) ++ ", "
+           ++ "const " ++ retType b ++ " " ++ (idents b !! 2)
   where b = body fn
