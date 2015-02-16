@@ -151,32 +151,30 @@ instance Show (Statement next) where
                                             ++ ";\n\t") elems
 
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
-                                          ++ ident 
-                                          ++ ".begin(), " 
-                                          ++ ident 
-                                          ++ ".end(), "
-                                          ++ ident 
-                                          ++ ".begin(), " 
-                                          ++ (name fun)
-                                          ++ "());\n"
+                                              ++ (concat $ intersperse "," $
+                                                 [ (fst $ iters ident),
+                                                   (snd $ iters ident),
+                                                   (fst $ iters ident)])  
+                                              ++ "," ++ (name fun)
+                                              ++ "());\n"
 
   show (Cout (HVector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
-                                          ++ show sz 
-                                          ++ "; ++i){std::cout << "
-                                          ++ ident
-                                          ++ "[i] << \" \";}\n"
-                                          ++ "\tstd::cout << std::endl;"
+                                                ++ show sz 
+                                                ++ "; ++i){std::cout << "
+                                                ++ ident
+                                                ++ "[i] << \" \";}\n"
+                                                ++ "\tstd::cout << std::endl;"
 
   show (Fold to fun (HVector ident _ elems) init next) = "\tthrust::host_vector<"
-                                                  ++ (retType $ snd $ head elems)
-                                                  ++ ">"
-                                                  ++ to 
-                                                  ++ " = "
-                                                  ++ "thrust::reduce("
-                                                  ++ (fst $ iters ident) ++ ", "
-                                                  ++ (snd $ iters ident) ++ ", "
-                                                  ++ (show init) ++ ", "
-                                                  ++ (name fun) ++ "());\n"
+                                                          ++ (retType $ snd $ head elems)
+                                                          ++ ">"
+                                                          ++ to 
+                                                          ++ " = "
+                                                          ++ "thrust::reduce("
+                                                          ++ (fst $ iters ident) ++ ", "
+                                                          ++ (snd $ iters ident) ++ ", "
+                                                          ++ (show init) ++ ", "
+                                                          ++ (name fun) ++ "());\n"
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
