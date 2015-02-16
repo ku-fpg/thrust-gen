@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-} 
+{-# LANGUAGE PostfixOperators #-}
 {-# LANGUAGE DeriveFunctor #-} 
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
@@ -165,9 +166,8 @@ instance Show (Statement next) where
                                                 ++ "[i] << \" \";}\n"
                                                 ++ "\tstd::cout << std::endl;"
 
-  show (Fold to fun (HVector ident _ elems) init next) = "\tthrust::host_vector<"
-                                                          ++ (retType $ snd $ head elems)
-                                                          ++ ">"
+  show (Fold to fun (HVector ident _ elems) init next) =  (retType $ snd $ head elems)
+                                                          ++ " "
                                                           ++ to 
                                                           ++ " = "
                                                           ++ "thrust::reduce("
@@ -209,8 +209,19 @@ instance Eq (Expr Int) where
 instance Ord (Expr Int) where
   (I i1) `compare` (I i2) = i1 `compare` i2
 
+instance Fractional (Expr Double) where
+  fromRational = D . realToFrac
 
+instance Fractional (Expr Float) where
+  fromRational = F . realToFrac 
+ 
+instance Functor Statement where
+  fmap f (Decl vec next) = Decl vec (f next)
+  fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
+  fmap f (Cout v next) = Cout v (f next) 
+  fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
 
+{- Convenience operators for (Expr) bool's  -}
 (.&&) :: Expr Bool -> Expr Bool -> Expr Bool
 b1 .&& b2 = And b1 b2
 
@@ -232,23 +243,6 @@ b1 .|| b2 = Or b1 b2
 (.=>) :: Expr Int -> Expr Int -> Expr Bool
 (I i1) .=> (I i2) = B $ i1 >= i2
 
-
-instance Fractional (Expr Double) where
-  fromRational = D . realToFrac
-
-instance Fractional (Expr Float) where
-  fromRational = F . realToFrac 
- 
-instance Functor Statement where
-  fmap f (Decl vec next) = Decl vec (f next)
-  fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
-  fmap f (Cout v next) = Cout v (f next) 
-  fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
-
-{- Helper functions ---------------------------------------------}
-{- Only for use in show instance, not to be exported It may be 
-   better to work these into the type more naturally later on -}
-
 -- Used to clean up lambda exprs
 -- allows us to write (\x -> true && false && (x < 4)
 true :: Expr Bool
@@ -257,6 +251,12 @@ true = B True
 false :: Expr Bool
 false = B False
 
+{- Convenience operators for (Expr) int's -}
+(!) = I 
+
+{- Helper functions ---------------------------------------------}
+{- Only for use in show instance, not to be exported It may be 
+   better to work these into the type more naturally later on -}
 retType :: (Expr a) -> String
 retType (I _)       = "int"
 retType (F _)       = "float"
