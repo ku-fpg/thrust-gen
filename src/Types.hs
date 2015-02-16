@@ -74,7 +74,7 @@ instance Show (Expr a) where
   show (Mult e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")" 
   show (Or e1 e2)   = "(" ++ show e1 ++ " || " ++ show e2 ++ ")"
   show (And e1 e2)  = "(" ++ show e1 ++ " && " ++ show e2 ++ ")"
-  show (Not e1)     = "( !" ++ show e1 ++ ")"
+  show (Not e1)     = "(!" ++ show e1 ++ ")"
   show (Var s)      = s
   show (I n)        = show n
   show (B b)        = map toLower $ show b
@@ -108,7 +108,7 @@ instance Show (CFunc a) where
                                      ++ (name func)  
                                      ++ (case inherit func of
                                            None -> "")
-                                     ++ " {\n\t "
+                                     ++ " {\n\t"
                                      ++ (retType $ body func) ++ " operator()(" 
                                      ++ (args func) 
                                      ++ ") const{\n\t\t"
@@ -120,7 +120,7 @@ instance Show (CFunc a) where
                                      ++ " " ++ (name func) ++ "{\n\t"
 
           closing =  case funcType func of
-                      StructBased -> "\n\t}\n };\n"
+                      StructBased -> "\n\t}\n};\n"
                       Regular     -> "\n}\n"
 
 
@@ -181,8 +181,8 @@ b1 .&& b2 = And b1 b2
 (.||) :: Expr Bool -> Expr Bool -> Expr Bool
 b1 .|| b2 = Or b1 b2
 
-(.!) :: Expr Bool -> Expr Bool
-(.!) b1 = Not b1
+(.!) :: () -> Expr Bool -> Expr Bool
+() .! b1 = Not b1
 
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
