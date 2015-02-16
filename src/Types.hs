@@ -57,7 +57,7 @@ data Statement next where
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
   Cout  :: Vector a -> next -> Statement next
-  Fold  :: (Show a) => CFunc a -> Vector a -> a -> next -> Statement next
+  Fold  :: (Show a) => String -> CFunc a -> Vector a -> a -> next -> Statement next
 
 
 -- Declares whether a functor
@@ -167,7 +167,12 @@ instance Show (Statement next) where
                                           ++ "[i] << \" \";}\n"
                                           ++ "\tstd::cout << std::endl;"
 
-  show (Fold fun (HVector ident _ _) init next) = "\tthrust::reduce("
+  show (Fold to fun (HVector ident _ elems) init next) = "\tthrust::host_vector<"
+                                                  ++ (retType $ snd $ head elems)
+                                                  ++ ">"
+                                                  ++ to 
+                                                  ++ " = "
+                                                  ++ "thrust::reduce("
                                                   ++ (fst $ iters ident) ++ ", "
                                                   ++ (snd $ iters ident) ++ ", "
                                                   ++ (show init) ++ ", "
@@ -240,7 +245,7 @@ instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
   fmap f (Cout v next) = Cout v (f next) 
-  fmap f (Fold cfunc vec val next) = Fold cfunc vec val (f next) 
+  fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 

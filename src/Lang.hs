@@ -16,7 +16,7 @@ getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
 getLibInfo (Cout _ _)    = [([Stdlib], "iostream")]
-getLibInfo (Fold _ _ _ _) = [([Thrust], "reduce")]
+getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -30,14 +30,14 @@ getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
 getLibs (Free c@(Cout _ next))    = liftM2 (++) (return $ [getLib c]) (getLibs next)
-getLibs (Free f@(Fold _ _ _ next)) = liftM2 (++) (return $ [getLib f]) (getLibs next)
+getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return $ [getLib f]) (getLibs next)
 getLibs (Pure _)                  = return []
 
 getStructs :: Stmt a -> IO ()
 getStructs (Free d@(Decl _ next))       = getStructs next
 getStructs (Free t@(Trans func _ next)) = putStrLn (show func) >> getStructs next
 getStructs (Free c@(Cout _ next))       = getStructs next
-getStructs (Free f@(Fold func _ _ next))  = putStrLn (show func) >> getStructs next
+getStructs (Free f@(Fold _ func _ _ next))  = putStrLn (show func) >> getStructs next
 getStructs (Pure _)                     = putStr ""
 
 newLabel :: Func Int
@@ -61,22 +61,24 @@ transform c expr = do p <- newLabel
 cout :: Vector a -> Func ()
 cout v = liftF $ Cout v ()
 
-reduce c initV expr = do p <- newLabel
+reduce c initV expr = do p  <- newLabel
+                         p2 <- newLabel
                          let body = (expr (Var "a")) (Var "b")
+                             to   = "v" ++ show p2
                              name = "f" ++ show p
                              func = CFunc name body Neither None StructBased 2
-                         liftF $ Fold func c initV c
+                         liftF $ Fold to func c initV c
                 
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
 interp (Free c@(Cout v next))       = putStrLn (show c) >> interp next
-interp (Free f@(Fold fun v _ next)) = putStrLn (show f) >> interp next
+interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
-generate :: Func a -> IO()
-generate prog = do let prog' = evalStateT prog 0
+toThrust :: Func a -> IO()
+toThrust prog = do let prog' = evalStateT prog 0
                    res <- getLibs prog'
                    putStrLn $ concatMap (++"") $ nub res
                    getStructs prog'
