@@ -15,6 +15,7 @@ import Control.Monad.Free
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
+getLibInfo (Cout _ _)    = [([Stdlib], "iostream")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -27,12 +28,14 @@ getLib l = concatMap
 getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
 getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
+getLibs (Free c@(Cout _ next))    = liftM2 (++) (return $ [getLib c]) (getLibs next)
 getLibs (Pure _)                  = return []
 
 getStructs :: Stmt a -> IO ()
-getStructs (Free d@(Decl _ next)) = getStructs next
+getStructs (Free d@(Decl _ next))       = getStructs next
 getStructs (Free t@(Trans func _ next)) = putStrLn (show func) >> getStructs next
-getStructs (Pure _)                    = putStr ""
+getStructs (Free c@(Cout _ next))       = getStructs next
+getStructs (Pure _)                     = putStr ""
 
 newLabel :: Func Int
 newLabel = do p <- get
@@ -52,6 +55,8 @@ transform c expr = do p <- newLabel
                           func = CFunc name body Neither None StructBased  
                       liftF $ Trans func c c
 
+cout :: Vector a -> Func ()
+cout v = liftF $ Cout v ()
 
 --fold :: Vector a -> (Expr a -> Expr a -> Expr a) -> Func (Vector a)
 --fold c expr = do p <- newLabel
@@ -63,6 +68,7 @@ transform c expr = do p <- newLabel
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
+interp (Free c@(Cout v next))       = putStrLn (show c) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 

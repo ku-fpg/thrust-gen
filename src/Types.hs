@@ -56,6 +56,7 @@ data Statement next where
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
   Fold  :: CFunc a -> Vector a -> a -> next -> Statement next
+  Cout  :: Vector a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -147,7 +148,13 @@ instance Show (Statement next) where
                                           ++ ".begin(), " 
                                           ++ (name fun)
                                           ++ "());\n"
-                                          
+
+  show (Cout (HVector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
+                                          ++ show sz 
+                                          ++ "; ++i){std::cout << "
+                                          ++ ident
+                                          ++ "[i] << \" \";}\n"
+                                          ++ "\tstd::cout << std::endl;"
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
@@ -194,6 +201,7 @@ instance Fractional (Expr Float) where
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
+  fmap f (Cout v next) = Cout v (f next) 
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
