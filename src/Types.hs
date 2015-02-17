@@ -157,7 +157,7 @@ instance Show (Statement next) where
                                                    (snd $ iters ident),
                                                    (fst $ iters ident)])  
                                               ++ "," ++ (name fun)
-                                              ++ "());\n"
+                                              ++ "());"
 
   show (Cout (HVector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
                                                 ++ show sz 
@@ -166,7 +166,7 @@ instance Show (Statement next) where
                                                 ++ "[i] << \" \";}\n"
                                                 ++ "\tstd::cout << std::endl;"
 
-  show (Fold to fun (HVector ident _ elems) init next) =  (retType $ snd $ head elems)
+  show (Fold to fun (HVector ident _ elems) init _) =  "\t" ++ (retType $ snd $ head elems)
                                                           ++ " "
                                                           ++ to 
                                                           ++ " = "
@@ -174,7 +174,7 @@ instance Show (Statement next) where
                                                           ++ (fst $ iters ident) ++ ", "
                                                           ++ (snd $ iters ident) ++ ", "
                                                           ++ (show init) ++ ", "
-                                                          ++ (name fun) ++ "());\n"
+                                                          ++ (name fun) ++ "());"
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
