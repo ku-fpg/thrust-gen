@@ -6,12 +6,16 @@ all_ x = reduce x true (\x y -> x .&& y)
 any_ x = reduce x false (\x y -> x .|| y)
 or_ b x = transform x (\x -> x .&& b)
 
+infixr 4 #
 v # (fn,expr) = fn v expr  
 
+infixr 6 <#>
+(<#>) a b = (a,b)
+
 main = toThrust $ do a <- vector 3 [(0,I 5), (1, 20), (2, 4)]
-                     b <- vector 2 [(0,false), (1, true)]
-                     b # (transform, (\x -> x .&& true))
-                     a # (transform, (\x -> x + 2))
+                     b <-  vector 2 [(0,false), (1, true)]
+                     b # transform <#> (\x -> x .&& true)
+                     a # transform <#> (\x -> x + 2)
                      return a
 
 
