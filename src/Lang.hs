@@ -14,6 +14,7 @@ import Control.Monad.Free
 
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
 getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
+getLibInfo (Load _ _)    = [([Thrust], "device_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
 getLibInfo (Cout _ _)    = [([Stdlib], "iostream")]
 getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
@@ -27,18 +28,20 @@ getLib l = concatMap
                         ++ ">\n") (getLibInfo l) 
 
 getLibs :: Stmt a -> IO [String]
-getLibs (Free d@(Decl _ next))    = liftM2 (++) (return $ [getLib d]) (getLibs next)
-getLibs (Free t@(Trans _ _ next)) = liftM2 (++) (return $ [getLib t]) (getLibs next)
-getLibs (Free c@(Cout _ next))    = liftM2 (++) (return $ [getLib c]) (getLibs next)
-getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return $ [getLib f]) (getLibs next)
-getLibs (Pure _)                  = return []
+getLibs (Free d@(Decl _ next))       = liftM2 (++) (return [getLib d]) (getLibs next)
+getLibs (Free l@(Load _ next))       = liftM2 (++) (return [getLib l]) (getLibs next)
+getLibs (Free t@(Trans _ _ next))    = liftM2 (++) (return [getLib t]) (getLibs next)
+getLibs (Free c@(Cout _ next))       = liftM2 (++) (return [getLib c]) (getLibs next)
+getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return [getLib f]) (getLibs next)
+getLibs (Pure _)                     = return []
 
 getStructs :: Stmt a -> IO ()
-getStructs (Free d@(Decl _ next))       = getStructs next
-getStructs (Free t@(Trans func _ next)) = putStrLn (show func) >> getStructs next
-getStructs (Free c@(Cout _ next))       = getStructs next
+getStructs (Free d@(Decl _ next))           = getStructs next
+getStructs (Free l@(Load _ next))           = getStructs next
+getStructs (Free t@(Trans func _ next))     = putStrLn (show func) >> getStructs next
+getStructs (Free c@(Cout _ next))           = getStructs next
 getStructs (Free f@(Fold _ func _ _ next))  = putStrLn (show func) >> getStructs next
-getStructs (Pure _)                     = putStr ""
+getStructs (Pure _)                         = putStr ""
 
 newLabel :: Ion Int
 newLabel = do p <- get
@@ -50,6 +53,10 @@ vector sz elems = do p <- newLabel
                      let name = "v" ++ show p
                          vector = HVector name sz elems
                      liftF $ Decl (vector) vector
+
+load :: Vector a -> Ion (Vector a)
+load v = let dvec = DVector ('d' : (drop 1 $ label v)) (size v) (elems v)
+         in liftF $ Load dvec dvec
 
 transform :: Vector a -> (Expr a -> Expr a) -> Ion (Vector a) 
 transform c expr = do p <- newLabel
@@ -71,6 +78,7 @@ reduce c initV expr = do p  <- newLabel
                 
 interp :: Stmt a -> IO()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
+interp (Free l@(Load v next))       = putStrLn (show l) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
 interp (Free c@(Cout v next))       = putStrLn (show c) >> interp next
 interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next

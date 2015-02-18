@@ -59,7 +59,7 @@ data Statement next where
   Trans :: CFunc a -> Vector a -> next -> Statement next
   Cout  :: Vector a -> next -> Statement next
   Fold  :: (Show a) => String -> CFunc a -> Vector a -> Expr a -> next -> Statement next
-
+  Load  :: Vector a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -151,11 +151,27 @@ instance Show (Statement next) where
                                             ++ (show val) 
                                             ++ ";\n\t") elems
 
+  show (Load (DVector ident sz elems) next) = "\tthrust::device_vector<"
+                                          ++ (retType $ snd $ head elems)
+                                          ++ "> "
+                                          ++ ident
+                                          ++ " = v"
+                                          ++ drop 1 ident
+                                          ++ ";\n"
+
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
                                               ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident),
                                                    (fst $ iters ident)])  
+                                              ++ "," ++ (name fun)
+                                              ++ "());"
+
+  show (Trans fun (DVector ident _ _) next) = "\tthrust::transform("
+                                              ++ (concat $ intersperse "," $
+                                                 [ (fst $ iters ident),
+                                                   (snd $ iters ident),
+                                                   (fst $ iters ident)])
                                               ++ "," ++ (name fun)
                                               ++ "());"
 
@@ -217,6 +233,7 @@ instance Fractional (Expr Float) where
  
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
+  fmap f (Load vec next) = Load vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
   fmap f (Cout v next) = Cout v (f next) 
   fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
