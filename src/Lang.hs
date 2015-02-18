@@ -76,7 +76,7 @@ reduce c initV expr = do p  <- newLabel
                              func = CFunc name body Neither None StructBased 2
                          liftF $ Fold to func c initV c
                 
-interp :: Stmt a -> IO()
+interp :: Stmt a -> IO ()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free l@(Load v next))       = putStrLn (show l) >> interp next
 interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
@@ -85,7 +85,7 @@ interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
-toThrust :: Ion a -> IO()
+toThrust :: Ion a -> IO ()
 toThrust prog = do let prog' = evalStateT prog 0
                    res <- getLibs prog'
                    putStrLn $ concatMap (++"") $ nub res

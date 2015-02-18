@@ -58,8 +58,9 @@ data Statement next where
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
   Cout  :: Vector a -> next -> Statement next
-  Fold  :: (Show a) => String -> CFunc a -> Vector a -> Expr a -> next -> Statement next
+  Fold  :: (Show a) => Name -> CFunc a -> Vector a -> Expr a -> next -> Statement next
   Load  :: Vector a -> next -> Statement next
+  FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next 
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -167,13 +168,7 @@ instance Show (Statement next) where
                                               ++ "," ++ (name fun)
                                               ++ "());"
 
-  show (Trans fun (DVector ident _ _) next) = "\tthrust::transform("
-                                              ++ (concat $ intersperse "," $
-                                                 [ (fst $ iters ident),
-                                                   (snd $ iters ident),
-                                                   (fst $ iters ident)])
-                                              ++ "," ++ (name fun)
-                                              ++ "());"
+  show (Trans f (DVector i a b) next) = show $ Trans f (HVector i a b) next
 
   show (Cout (HVector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
                                                 ++ show sz 
