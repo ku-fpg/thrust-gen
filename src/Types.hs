@@ -15,7 +15,7 @@ import Control.Monad.Free
 type Name = String
 type ReturnType = String
 type Stmt = Free Statement
-type Func = StateT Int Stmt 
+type Ion = StateT Int Stmt 
 type LibName = String
 
 {- Data Types -------------------------------------------------}
