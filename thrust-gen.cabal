@@ -29,7 +29,7 @@ library
 
   build-depends:       base >=4.7 && <4.8, 
                        mtl >=2.1 && <2.2, 
-                       free >=4.10 && <4.11
+                       free 
 
   hs-source-dirs:      src
 
