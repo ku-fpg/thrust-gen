@@ -235,15 +235,15 @@ instance Num (Expr Double) where
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
   signum (D v) = (D . signum) v
-  abs (D v)   = (D. abs) v
+  abs (D v)   = (D . abs) v
 
 instance Num (Expr Float) where
   fromInteger = F . fromInteger
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
-  signum = error "Undefined operation"
-  abs    = error "Undefined operation"
+  signum (F v) = (F . signum) v
+  abs (F v)   = (F . abs) v
 
 
 instance Eq (Expr Bool) where
