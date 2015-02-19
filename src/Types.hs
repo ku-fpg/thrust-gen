@@ -9,6 +9,7 @@ module Types where
 import Data.Char
 import Data.List
 import Data.Complex
+import Data.Boolean
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -275,16 +276,15 @@ instance Functor Statement where
   fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
 
 {- Convenience operators for (Expr) bool's  -}
-(.&&) :: Expr Bool -> Expr Bool -> Expr Bool
-b1 .&& b2 = And b1 b2
+instance Boolean (Expr Bool) where
+  b1 &&* b2 = And b1 b2
+  b1 ||* b2 = Or b1 b2
+  notB b1 = Not b1
+  true = B True
+  false = B False
 
-(.||) :: Expr Bool -> Expr Bool -> Expr Bool
-b1 .|| b2 = Or b1 b2
-
-(.!) :: () -> Expr Bool -> Expr Bool
-() .! b1 = Not b1
-
-(.<) :: Expr Int -> Expr Int -> Expr Bool
+{--
+(<*) :: Expr Int -> Expr Int -> Expr Bool
 (I i1) .< (I i2) = B $ i1 < i2
 
 (.>) :: Expr Int -> Expr Int -> Expr Bool
@@ -295,14 +295,14 @@ b1 .|| b2 = Or b1 b2
 
 (.=>) :: Expr Int -> Expr Int -> Expr Bool
 (I i1) .=> (I i2) = B $ i1 >= i2
-
+--}
 -- Used to clean up lambda exprs
 -- allows us to write (\x -> true && false && (x < 4)
-true :: Expr Bool
-true = B True
+--true :: Expr Bool
+--true = B True
 
-false :: Expr Bool
-false = B False
+--false :: Expr Bool
+--false = B False
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
