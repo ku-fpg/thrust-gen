@@ -8,6 +8,7 @@ module Types where
 
 import Data.Char
 import Data.List
+import Data.Algebra.Boolean
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -195,24 +196,39 @@ instance Num (Expr Int) where
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
+  signum = error "Undefined operation"
+  abs    = error "Undefined operation"
 
 instance Num (Expr Double) where
   fromInteger = D . fromInteger
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
+  signum = error "Undefined operation"
+  abs    = error "Undefined operation"
 
 instance Num (Expr Float) where
   fromInteger = F . fromInteger
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
+  signum = error "Undefined operation"
+  abs    = error "Undefined operation"
+
 
 instance Eq (Expr Bool) where
   (B b1) == (B b2) = b1 == b2
 
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
+
+instance Boolean (Expr Bool) where
+  (&&) (B b1) (B b2) = B $ b1 Prelude.&& b2
+  (||) (B b1) (B b2) = B $ b1 Prelude.|| b2
+  not (B b1) = B $ Prelude.not b1
+  true = B True
+  false = B False
+  (<-->) (B b1) (B b2) = B $ (Prelude.not b1 `xor` Prelude.not b2)
 
 instance Eq (Expr Int) where
   (I i1) == (I i2) = i1 == i2
@@ -222,10 +238,14 @@ instance Ord (Expr Int) where
 
 instance Fractional (Expr Double) where
   fromRational = D . realToFrac
+  recip = error "Undefined operation" 
+  (/)   = error "Undefined operation"
 
 instance Fractional (Expr Float) where
   fromRational = F . realToFrac 
- 
+  recip = error "Undefined operation" 
+  (/)   = error "Undefined operation"
+
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Load vec next) = Load vec (f next)
