@@ -8,7 +8,6 @@ module Types where
 
 import Data.Char
 import Data.List
-import Data.Algebra.Boolean
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -221,14 +220,6 @@ instance Eq (Expr Bool) where
 
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
-
-instance Boolean (Expr Bool) where
-  (&&) (B b1) (B b2) = B $ b1 Prelude.&& b2
-  (||) (B b1) (B b2) = B $ b1 Prelude.|| b2
-  not (B b1) = B $ Prelude.not b1
-  true = B True
-  false = B False
-  (<-->) (B b1) (B b2) = B $ (Prelude.not b1 `xor` Prelude.not b2)
 
 instance Eq (Expr Int) where
   (I i1) == (I i2) = i1 == i2

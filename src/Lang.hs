@@ -48,11 +48,36 @@ newLabel = do p <- get
               put (p+1)
               return p
 
-vector :: Int -> [(Int, Expr a)] -> Ion (Vector a)
-vector sz elems = do p <- newLabel
-                     let name = "v" ++ show p
-                         vector = HVector name sz elems
-                     liftF $ Decl (vector) vector
+int :: Int -> Expr Int 
+int = I
+
+bool :: Bool -> Expr Bool
+bool = B
+
+class ToExpr a where
+  toExpr :: a -> Expr a
+
+instance ToExpr Bool where
+  toExpr = B 
+
+instance ToExpr Int where
+  toExpr = I
+
+instance ToExpr Float where
+  toExpr = F
+
+instance ToExpr Double where
+  toExpr = D
+
+vector :: (ToExpr a) => (a -> Expr a) -> [a] -> Ion (Vector a)
+vector _ elems =    do p <- newLabel
+                       let name = "v" ++ show p
+                           sz = length elems
+                           vector = HVector name sz (zip [0..(sz-1)] (map toExpr elems))
+                       liftF $ Decl (vector) vector
+
+
+
 
 load :: Vector a -> Ion (Vector a)
 load v = let dvec = DVector ('d' : (drop 1 $ label v)) (size v) (elems v)
