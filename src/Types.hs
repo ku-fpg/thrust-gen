@@ -8,6 +8,7 @@ module Types where
 
 import Data.Char
 import Data.List
+import Data.Complex
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -20,20 +21,21 @@ type LibName = String
 
 {- Data Types -------------------------------------------------}
 data Expr a where
-  -- Supported operation types
-  B     :: Bool     -> Expr Bool
-  F     :: Float    -> Expr Float
-  C     :: Char     -> Expr Char
-  D     :: Double   -> Expr Double
-  I     :: Int      -> Expr Int
+  -- Supported primitive types
+  B     :: Bool           -> Expr Bool
+  F     :: Float          -> Expr Float
+  C     :: Char           -> Expr Char
+  D     :: Double         -> Expr Double
+  I     :: Int            -> Expr Int
+  Cx    :: Complex Double -> Expr (Complex Double)
 
   -- Supported operations
-  And   :: Expr a   -> Expr a     -> Expr a
-  Or    :: Expr a   -> Expr a     -> Expr a
-  Not   :: Expr a   -> Expr a 
-  Add   :: Expr a   -> Expr a     -> Expr a
-  Mult  :: Expr a   -> Expr a     -> Expr a
-  Sub   :: Expr a   -> Expr a     -> Expr a
+  And   :: Expr a   -> Expr a -> Expr a
+  Or    :: Expr a   -> Expr a -> Expr a
+  Not   :: Expr a   -> Expr a
+  Add   :: Expr a   -> Expr a -> Expr a
+  Mult  :: Expr a   -> Expr a -> Expr a
+  Sub   :: Expr a   -> Expr a -> Expr a
   Var   :: String   -> Expr a
 
 data CFunc a = CFunc { name     :: Name
@@ -67,13 +69,33 @@ data Statement next where
 data LocationDecl = HostDecl | DeviceDecl | Both | Neither
 data InheritDecl  = None
 data FuncType     = Regular | StructBased
-data ImportDecl   = Stdlib | Thrust
+data ImportDecl   = Stdlib | Thrust | Cuda
+
+{- Conversion Instances ------------------------------------------}
+class ToExpr a where
+  toExpr :: a -> Expr a
+
+instance ToExpr Bool where
+  toExpr = B 
+
+instance ToExpr Int where
+  toExpr = I
+
+instance ToExpr Float where
+  toExpr = F
+
+instance ToExpr Double where
+  toExpr = D
+
+instance ToExpr (Complex Double) where
+  toExpr = Cx
+
 
 {- Show Instances -------------------------------------------------}
 {- Used for emitting C++ code. Could perhaps be parameterized in
    the future to output code in other languages such as Rust      -}
 
-instance Show (Expr a) where
+instance  Show (Expr a) where
   show (Add e1 e2)  = "(" ++ show e1 ++ " + " ++ show e2 ++ ")" 
   show (Sub e1 e2)  = "(" ++ show e1 ++ " - " ++ show e2 ++ ")" 
   show (Mult e1 e2) = "(" ++ show e1 ++ " * " ++ show e2 ++ ")" 
@@ -86,10 +108,14 @@ instance Show (Expr a) where
   show (C c)        = show c
   show (F f)        = show f
   show (D d)        = show d
+  show (Cx c)       = "Complex(" 
+                      ++ (show $ realPart c) ++ "," 
+                      ++ (show $ imagPart c) ++ ")"
  
 instance Show ImportDecl where
   show Thrust = "thrust/"
   show Stdlib = ""
+  show Cuda   = "" 
 
 -- TODO lookup thrust decl types
 instance Show InheritDecl where
@@ -274,9 +300,6 @@ true = B True
 false :: Expr Bool
 false = B False
 
-{- Convenience operators for (Expr) int's -}
-(!) = I 
-
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
    better to work these into the type more naturally later on -}
@@ -286,6 +309,7 @@ retType (F _)       = "float"
 retType (D _)       = "double"
 retType (C _)       = "char"
 retType (B _)       = "bool"
+retType (Cx _)      = "complex<double> " -- Add space for C++98 compilers
 retType (Add a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (Mult a b)  = concat $ nub $ [retType a] ++ [retType b]
 retType (Sub a b)   = concat $ nub $ [retType a] ++ [retType b]
@@ -320,3 +344,4 @@ args3 fn = "const " ++ retType b ++ " " ++ (idents b !! 0) ++ ", "
            ++ "const " ++ retType b ++ " " ++ (idents b !! 1) ++ ", "
            ++ "const " ++ retType b ++ " " ++ (idents b !! 2)
   where b = body fn
+

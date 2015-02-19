@@ -9,11 +9,15 @@ module Lang where
 import Types
 import Data.List
 import Data.Maybe
+import Data.Complex
 import Control.Monad.State
 import Control.Monad.Free
 
 getLibInfo :: Statement a -> [([ImportDecl], LibName)]
-getLibInfo (Decl _ _)    = [([Thrust], "host_vector")]
+getLibInfo (Decl v _) = [([Thrust], "host_vector")] 
+                        ++ (case (snd $ head $ elems $ v) of
+                              Cx _ -> [([Cuda], "cuda_complex")]
+                              _    -> [])
 getLibInfo (Load _ _)    = [([Thrust], "device_vector")]
 getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
 getLibInfo (Cout _ _)    = [([Stdlib], "iostream")]
@@ -24,7 +28,10 @@ getLib l = concatMap
             (\(xs,y) -> "#include <" 
                         ++ (concat $ map show xs) 
                         ++ y 
-                        ++ (if (show $ head xs) == "thrust/" then ".h" else "")
+                        ++ (case (head xs) of
+                              Thrust -> ".h" 
+                              Cuda   -> ".hpp"
+                              Stdlib -> "")
                         ++ ">\n") (getLibInfo l) 
 
 getLibs :: Stmt a -> IO [String]
@@ -54,20 +61,15 @@ int = I
 bool :: Bool -> Expr Bool
 bool = B
 
-class ToExpr a where
-  toExpr :: a -> Expr a
+complex :: Complex Double -> Expr (Complex Double)
+complex = Cx
 
-instance ToExpr Bool where
-  toExpr = B 
+{-instance ToExpr (Float, Float) where
+  toExpr (a,b) = Cx (a :+ b)
 
-instance ToExpr Int where
-  toExpr = I
-
-instance ToExpr Float where
-  toExpr = F
-
-instance ToExpr Double where
-  toExpr = D
+instance (RealFloat a) => ToExpr (Complex a) where
+  toExpr = Cx
+-}
 
 vector :: (ToExpr a) => (a -> Expr a) -> [a] -> Ion (Vector a)
 vector _ elems =    do p <- newLabel
@@ -117,4 +119,16 @@ toThrust prog = do let prog' = evalStateT prog 0
                    getStructs prog'
                    putStrLn "int main (){"
                    interp prog'
+
+-- example of defining useful libs in terms of exp
+all_ x = reduce x true (\x y -> x .&& y)
+any_ x = reduce x false (\x y -> x .|| y)
+or_ b x = transform x (\x -> x .&& b)
+
+infixr 4 #
+v # (fn,expr) = fn v expr  
+
+infixr 6 <#>
+(<#>) a b = (a,b)
+
 
