@@ -282,7 +282,6 @@ retType (And a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (Or a b)    = concat $ nub $ [retType a] ++ [retType b]
 retType (Not a)     = concat $ nub $ [retType a]
 retType (Var a)     = ""
-retType _           = error "Unknown expr value"
 
 
 idents :: (Expr a) -> [String]
