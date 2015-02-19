@@ -10,6 +10,7 @@ import Types
 import Data.List
 import Data.Maybe
 import Data.Complex
+import Data.Boolean
 import Control.Monad.State
 import Control.Monad.Free
 
@@ -121,9 +122,9 @@ toThrust prog = do let prog' = evalStateT prog 0
                    interp prog'
 
 -- example of defining useful libs in terms of exp
-all_ x = reduce x true (\x y -> x .&& y)
-any_ x = reduce x false (\x y -> x .|| y)
-or_ b x = transform x (\x -> x .&& b)
+all_ x = reduce x true (\x y -> x &&* y)
+any_ x = reduce x false (\x y -> x ||* y)
+or_ b x = transform x (\x -> x &&* b)
 
 infixr 4 #
 v # (fn,expr) = fn v expr  
