@@ -272,6 +272,7 @@ false = B False
 retType :: (Expr a) -> String
 retType (I _)       = "int"
 retType (F _)       = "float"
+retType (D _)       = "double"
 retType (C _)       = "char"
 retType (B _)       = "bool"
 retType (Add a b)   = concat $ nub $ [retType a] ++ [retType b]

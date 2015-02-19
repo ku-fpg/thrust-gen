@@ -12,7 +12,7 @@ v # (fn,expr) = fn v expr
 infixr 6 <#>
 (<#>) a b = (a,b)
 
-main = toThrust $ do a <- vector 3 [(0, 5), (1, 20), (2, 4)] :: Ion(Vector Int)
+main = toThrust $ do a <- vector 3 [(0, 5), (1, 20), (2, 4)] :: Ion(Vector Double)
                      b <-  vector 2 [(0,false), (1, true)]
                      d <- load a
                      d # transform <#> (\x -> x + 2)
