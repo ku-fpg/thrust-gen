@@ -130,5 +130,3 @@ v # (fn,expr) = fn v expr
 
 infixr 6 <#>
 (<#>) a b = (a,b)
-
-

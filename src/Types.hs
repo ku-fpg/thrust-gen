@@ -38,6 +38,10 @@ data Expr a where
   Sub   :: Expr a   -> Expr a -> Expr a
   Var   :: String   -> Expr a
 
+  -- Conditional Logic
+  While :: Expr Bool -> Expr a -> Expr a
+  If    :: Expr Bool -> Expr a -> Expr a -> Expr a
+
 data CFunc a = CFunc { name     :: Name
                      , body     :: Expr a
                      , loc      :: LocationDecl
