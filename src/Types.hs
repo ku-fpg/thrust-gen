@@ -226,16 +226,16 @@ instance Num (Expr Int) where
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
-  signum = error "Undefined operation"
-  abs    = error "Undefined operation"
+  signum (I v) = (I . signum) v
+  abs (I v)   = (I . abs) v
 
 instance Num (Expr Double) where
   fromInteger = D . fromInteger
   lhs + rhs = Add lhs rhs
   lhs * rhs = Mult lhs rhs
   lhs - rhs = Sub lhs rhs
-  signum = error "Undefined operation"
-  abs    = error "Undefined operation"
+  signum (D v) = (D . signum) v
+  abs (D v)   = (D. abs) v
 
 instance Num (Expr Float) where
   fromInteger = F . fromInteger
