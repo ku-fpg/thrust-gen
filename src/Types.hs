@@ -296,13 +296,6 @@ instance Boolean (Expr Bool) where
 (.=>) :: Expr Int -> Expr Int -> Expr Bool
 (I i1) .=> (I i2) = B $ i1 >= i2
 --}
--- Used to clean up lambda exprs
--- allows us to write (\x -> true && false && (x < 4)
---true :: Expr Bool
---true = B True
-
---false :: Expr Bool
---false = B False
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 

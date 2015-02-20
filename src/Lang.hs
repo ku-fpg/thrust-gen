@@ -52,9 +52,7 @@ getStructs (Free f@(Fold _ func _ _ next))  = putStrLn (show func) >> getStructs
 getStructs (Pure _)                         = putStr ""
 
 newLabel :: Ion Int
-newLabel = do p <- get
-              put (p+1)
-              return p
+newLabel = get >>= \p -> put (p+1) >> return p
 
 int :: Int -> Expr Int 
 int = I
@@ -65,13 +63,7 @@ bool = B
 complex :: Complex Double -> Expr (Complex Double)
 complex = Cx
 
-{-instance ToExpr (Float, Float) where
-  toExpr (a,b) = Cx (a :+ b)
-
-instance (RealFloat a) => ToExpr (Complex a) where
-  toExpr = Cx
--}
-
+-- initialize a host vector
 vector :: (ToExpr a) => (a -> Expr a) -> [a] -> Ion (Vector a)
 vector _ elems =    do p <- newLabel
                        let name = "v" ++ show p
@@ -79,13 +71,12 @@ vector _ elems =    do p <- newLabel
                            vector = HVector name sz (zip [0..(sz-1)] (map toExpr elems))
                        liftF $ Decl (vector) vector
 
-
-
-
+-- copy a host vector into a device vector
 load :: Vector a -> Ion (Vector a)
 load v = let dvec = DVector ('d' : (drop 1 $ label v)) (size v) (elems v)
          in liftF $ Load dvec dvec
 
+-- a map operation across either host or device vectors
 transform :: Vector a -> (Expr a -> Expr a) -> Ion (Vector a) 
 transform c expr = do p <- newLabel
                       let body = (expr (Var "a"))
