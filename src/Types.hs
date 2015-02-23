@@ -42,7 +42,7 @@ data Expr a where
   -- Conditional Logic
   While :: Expr Bool -> Expr a -> Expr a
   If    :: Expr Bool -> Expr a -> Expr a -> Expr a
-
+  
 data CFunc a = CFunc { name     :: Name
                      , body     :: Expr a
                      , loc      :: LocationDecl
@@ -245,15 +245,15 @@ instance Num (Expr Float) where
   signum (F v) = (F . signum) v
   abs (F v)   = (F . abs) v
 
-
-instance Eq (Expr Bool) where
+instance Eq (Expr a) where
+  (Add a1 b1) == (Add a2 b2) = a1 == a2 && b1 == b2
+  (Sub a1 b1) == (Sub a2 b2) = a1 == a2 && b1 == b2
+  (I i1) == (I i2) = i1 == i2
   (B b1) == (B b2) = b1 == b2
+  _ == _ = False
 
 instance Ord (Expr Bool) where
   (B b1) `compare` (B b2) = b1 `compare` b2
-
-instance Eq (Expr Int) where
-  (I i1) == (I i2) = i1 == i2
 
 instance Ord (Expr Int) where
   (I i1) `compare` (I i2) = i1 `compare` i2

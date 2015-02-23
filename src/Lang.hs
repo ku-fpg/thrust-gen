@@ -43,13 +43,13 @@ getLibs (Free c@(Cout _ next))       = liftM2 (++) (return [getLib c]) (getLibs 
 getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return [getLib f]) (getLibs next)
 getLibs (Pure _)                     = return []
 
-getStructs :: Stmt a -> IO ()
+getStructs :: Stmt a -> IO [String] 
 getStructs (Free d@(Decl _ next))           = getStructs next
 getStructs (Free l@(Load _ next))           = getStructs next
-getStructs (Free t@(Trans func _ next))     = putStrLn (show func) >> getStructs next
+getStructs (Free t@(Trans func _ next))     = liftM2 (++) (return [(show func)]) (getStructs next)
 getStructs (Free c@(Cout _ next))           = getStructs next
-getStructs (Free f@(Fold _ func _ _ next))  = putStrLn (show func) >> getStructs next
-getStructs (Pure _)                         = putStr ""
+getStructs (Free f@(Fold _ func _ _ next))  = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Pure _)                         = return []
 
 newLabel :: Ion Int
 newLabel = get >>= \p -> put (p+1) >> return p
@@ -108,7 +108,8 @@ toThrust :: Ion a -> IO ()
 toThrust prog = do let prog' = evalStateT prog 0
                    res <- getLibs prog'
                    putStrLn $ concatMap (++"") $ nub res
-                   getStructs prog'
+                   funcs <- getStructs prog'
+                   putStrLn $ concatMap (++"\n") funcs
                    putStrLn "int main (){"
                    interp prog'
 
