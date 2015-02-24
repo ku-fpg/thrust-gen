@@ -9,6 +9,7 @@ module Lang where
 import Types
 import Data.List
 import Data.Maybe
+import qualified Data.Set as Set
 import Data.Complex
 import Data.Boolean
 import Control.Monad.State
