@@ -1,5 +1,4 @@
-import Lang
-import Types
+import Ion.Base
 import Data.Complex
 import Data.Boolean
 
