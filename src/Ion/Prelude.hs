@@ -12,14 +12,14 @@ import Ion.Private.Lang
 import Control.Monad.Free
 
 reduce :: (Show a) => (Expr a, (Expr b -> Expr b -> Expr a)) 
-	              -> Vector a 
+	        -> Vector a 
 		      -> Ion (Vector a)
 reduce pr x = reduce' x (fst $ pr) (snd $ pr)
 
 -- Using double underscore suffix to denote same-name helper functions,
 -- not to be exported
 reduce__ :: (Show a) => Vector a -> Expr a 
-	                -> (Expr b -> Expr c -> Expr a) 
+	          -> (Expr b -> Expr c -> Expr a) 
 		        -> Ion (Vector a)
 reduce__ c initV expr = do p  <- newLabel
                             p2 <- newLabel
