@@ -88,14 +88,7 @@ transform c expr = do p <- newLabel
 cout :: Vector a -> Ion ()
 cout v = liftF $ Cout v ()
 
-reduce c initV expr = do p  <- newLabel
-                         p2 <- newLabel
-                         let body = (expr (Var "a")) (Var "b")
-                             to   = "v" ++ show p2
-                             name = "f" ++ show p
-                             func = CFunc name body Neither None StructBased 2
-                         liftF $ Fold to func c initV c
-                
+               
 interp :: Stmt a -> IO ()
 interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
 interp (Free l@(Load v next))       = putStrLn (show l) >> interp next
@@ -113,11 +106,6 @@ toThrust prog = do let prog' = evalStateT prog 0
                    putStrLn $ concatMap (++"\n") funcs
                    putStrLn "int main (){"
                    interp prog'
-
--- example of defining useful libs in terms of exp
-all_ x = reduce x true (\x y -> x &&* y)
-any_ x = reduce x false (\x y -> x ||* y)
-or_ b x = transform x (\x -> x &&* b)
 
 infixr 4 #
 v # (fn,expr) = fn v expr  

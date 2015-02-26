@@ -1,7 +1,5 @@
 import Ion.Base
 import Ion.Prelude
-import Data.Complex
-import Data.Boolean
 
 main = toThrust $ do a <- vector int [0..10]
                      f <- vector int [0,2,3,5] 
@@ -11,3 +9,5 @@ main = toThrust $ do a <- vector int [0..10]
                      a # transform <#> (\x -> x + 2)
                      b # transform <#> (\x -> x &&* true)
                      a # transform <#> (\x -> x + 2)
+		     g <- reduce all_ b
+		     return f
