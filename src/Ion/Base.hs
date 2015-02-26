@@ -1,4 +1,4 @@
-module Ion.Core ( L.vector
+module Ion.Base ( L.vector
 		, L.load
 		, L.transform
 		, (L.#)

@@ -2,4 +2,4 @@
 
 module Ion.Prelude where
 
-import Ion.Core
+import Ion.Base
