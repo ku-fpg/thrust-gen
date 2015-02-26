@@ -1,5 +1,5 @@
 {-- Emulating key pieces of the thrust API -}
 
-module Ion.API where
+module Ion.Prelude where
 
-import Ion.Base
+import Ion.Core

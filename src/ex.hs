@@ -1,4 +1,5 @@
-import Ion.Base
+import Ion.Core
+import Ion.Prelude
 import Data.Complex
 import Data.Boolean
 
