@@ -1,6 +1,7 @@
 import Ion.Base
 import Ion.Prelude
 
+main :: IO ()
 main = toThrust $ do a <- vector int [0..10]
                      f <- vector int [0,2,3,5] 
                      b <- vector bool [False, True]
