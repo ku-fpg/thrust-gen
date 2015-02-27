@@ -51,11 +51,12 @@ data CFunc a = CFunc { name     :: Name
                      , numArgs  :: Int
                      }
 
-data Vector a = HVector { label :: String
-                        , size  :: Int
-                        , elems :: [(Int, Expr a)]
-                        }
-                | DVector { _label :: String
+data Vector a = HVector   { label :: String
+                          , size  :: Int
+                          , elems :: [(Int, Expr a)]
+                          }
+
+               | DVector  { _label :: String
                           , _size  :: Int
                           , _elems :: [(Int, Expr a)]
                           }

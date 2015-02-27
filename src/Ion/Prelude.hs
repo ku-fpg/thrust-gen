@@ -1,8 +1,8 @@
 {-- Emulating key pieces of the thrust API -}
 
 module Ion.Prelude ( all_
-		                , any_
-		                , reduce
+		               , any_
+		               , reduce
 		               ) where
 
 import Data.Boolean
