@@ -20,10 +20,11 @@ getLibInfo (Decl v _) = [([Thrust], "host_vector")]
                         ++ (case (snd $ head $ elems $ v) of
                               Cx _ -> [([Cuda], "cuda_complex")]
                               _    -> [])
-getLibInfo (Load _ _)    = [([Thrust], "device_vector")]
-getLibInfo (Trans _ _ _) = [([Stdlib],"functional"), ([Thrust],"transform")]
-getLibInfo (Cout _ _)    = [([Stdlib], "iostream")]
+getLibInfo (Load _ _)       = [([Thrust], "device_vector")]
+getLibInfo (Trans _ _ _)    = [([Stdlib],"functional"), ([Thrust],"transform")]
+getLibInfo (Cout _ _)       = [([Stdlib], "iostream")]
 getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
+getLibInfo (Sort _ _)       = [([Thrust], "sort")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -42,6 +43,7 @@ getLibs (Free l@(Load _ next))       = liftM2 (++) (return [getLib l]) (getLibs 
 getLibs (Free t@(Trans _ _ next))    = liftM2 (++) (return [getLib t]) (getLibs next)
 getLibs (Free c@(Cout _ next))       = liftM2 (++) (return [getLib c]) (getLibs next)
 getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return [getLib f]) (getLibs next)
+getLibs (Free s@(Sort _ next))       = liftM2 (++) (return [getLib s]) (getLibs next)
 getLibs (Pure _)                     = return []
 
 getStructs :: Stmt a -> IO [String] 
@@ -50,6 +52,7 @@ getStructs (Free l@(Load _ next))           = getStructs next
 getStructs (Free t@(Trans func _ next))     = liftM2 (++) (return [(show func)]) (getStructs next)
 getStructs (Free c@(Cout _ next))           = getStructs next
 getStructs (Free f@(Fold _ func _ _ next))  = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Free s@(Sort _ next))           = getStructs next
 getStructs (Pure _)                         = return []
 
 newLabel :: Ion Int
@@ -88,13 +91,16 @@ transform c expr = do p <- newLabel
 cout :: Vector a -> Ion ()
 cout v = liftF $ Cout v ()
 
-               
+sort :: Vector a -> Ion (Vector a)
+sort v = liftF $ Sort v v
+
 interp :: Stmt a -> IO ()
-interp (Free a@(Decl v next))       = putStrLn (show a) >> interp next
-interp (Free l@(Load v next))       = putStrLn (show l) >> interp next
-interp (Free t@(Trans fun v next))  = putStrLn (show t) >> interp next
-interp (Free c@(Cout v next))       = putStrLn (show c) >> interp next
+interp (Free a@(Decl v next))         = putStrLn (show a) >> interp next
+interp (Free l@(Load v next))         = putStrLn (show l) >> interp next
+interp (Free t@(Trans fun v next))    = putStrLn (show t) >> interp next
+interp (Free c@(Cout v next))         = putStrLn (show c) >> interp next
 interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next
+interp (Free s@(Sort v next))         = putStrLn (show s) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 

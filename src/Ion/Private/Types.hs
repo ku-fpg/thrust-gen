@@ -68,7 +68,8 @@ data Statement next where
   Cout  :: Vector a -> next -> Statement next
   Fold  :: (Show a) => Name -> CFunc a -> Vector a -> Expr a -> next -> Statement next
   Load  :: Vector a -> next -> Statement next
-  FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next 
+  FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next
+  Sort  :: Vector a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -192,6 +193,12 @@ instance Show (Statement next) where
                                           ++ drop 1 ident
                                           ++ ";\n"
 
+  show (Sort (HVector ident sz elems) next) = "\tthrust::sort("
+                                              ++ (concat $ intersperse "," $
+                                                 [ (fst $ iters ident),
+                                                   (snd $ iters ident)]) 
+                                              ++ ");"
+
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
                                               ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
@@ -274,7 +281,8 @@ instance Functor Statement where
   fmap f (Load vec next) = Load vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
   fmap f (Cout v next) = Cout v (f next) 
-  fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next) 
+  fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next)
+  fmap f (Sort v next) = Sort v (f next)
 
 {- Convenience operators for (Expr) bool's  -}
 instance Boolean (Expr Bool) where

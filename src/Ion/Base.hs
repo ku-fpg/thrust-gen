@@ -1,6 +1,8 @@
 module Ion.Base ( L.vector
                 , L.load
                 , L.transform
+                , L.sort
+                , L.cout
                 , (L.#)
                 , (L.<#>)
                 , L.toThrust
