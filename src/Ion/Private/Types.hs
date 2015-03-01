@@ -70,6 +70,7 @@ data Statement next where
   Load  :: Vector a -> next -> Statement next
   FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next
   Sort  :: Vector a -> next -> Statement next
+  AdjDiff :: Vector a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -199,6 +200,14 @@ instance Show (Statement next) where
                                                    (snd $ iters ident)]) 
                                               ++ ");"
 
+  show (Sort (DVector ident sz elems) next) = show $ Sort (HVector ident sz elems) next
+
+  show (AdjDiff (HVector ident sz elems) next) = "\tthrust::adjacent_difference("
+                                                 ++ (concat $ intersperse "," $
+                                                 [ (fst $ iters ident),
+                                                   (snd $ iters ident),
+                                                   (fst $ iters ident)]) 
+
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
                                               ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
@@ -283,6 +292,7 @@ instance Functor Statement where
   fmap f (Cout v next) = Cout v (f next) 
   fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next)
   fmap f (Sort v next) = Sort v (f next)
+  fmap f (AdjDiff v next) = AdjDiff v (f next)
 
 {- Convenience operators for (Expr) bool's  -}
 instance Boolean (Expr Bool) where

@@ -25,6 +25,7 @@ getLibInfo (Trans _ _ _)    = [([Stdlib],"functional"), ([Thrust],"transform")]
 getLibInfo (Cout _ _)       = [([Stdlib], "iostream")]
 getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
 getLibInfo (Sort _ _)       = [([Thrust], "sort")]
+getLibInfo (AdjDiff _ _)    = [([Thrust], "adjacent_difference")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -44,6 +45,7 @@ getLibs (Free t@(Trans _ _ next))    = liftM2 (++) (return [getLib t]) (getLibs 
 getLibs (Free c@(Cout _ next))       = liftM2 (++) (return [getLib c]) (getLibs next)
 getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return [getLib f]) (getLibs next)
 getLibs (Free s@(Sort _ next))       = liftM2 (++) (return [getLib s]) (getLibs next)
+getLibs (Free a@(AdjDiff _ next))    = liftM2 (++) (return [getLib a]) (getLibs next)
 getLibs (Pure _)                     = return []
 
 getStructs :: Stmt a -> IO [String] 
@@ -53,6 +55,7 @@ getStructs (Free t@(Trans func _ next))     = liftM2 (++) (return [(show func)])
 getStructs (Free c@(Cout _ next))           = getStructs next
 getStructs (Free f@(Fold _ func _ _ next))  = liftM2 (++) (return [(show func)]) (getStructs next)
 getStructs (Free s@(Sort _ next))           = getStructs next
+getStructs (Free a@(AdjDiff _ next))        = getStructs next
 getStructs (Pure _)                         = return []
 
 newLabel :: Ion Int
@@ -94,6 +97,9 @@ cout v = liftF $ Cout v ()
 sort :: Vector a -> Ion (Vector a)
 sort v = liftF $ Sort v v
 
+adjdiff :: Vector a -> Ion (Vector a)
+adjdiff v = liftF $ AdjDiff v v
+
 interp :: Stmt a -> IO ()
 interp (Free a@(Decl v next))         = putStrLn (show a) >> interp next
 interp (Free l@(Load v next))         = putStrLn (show l) >> interp next
@@ -101,6 +107,7 @@ interp (Free t@(Trans fun v next))    = putStrLn (show t) >> interp next
 interp (Free c@(Cout v next))         = putStrLn (show c) >> interp next
 interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next
 interp (Free s@(Sort v next))         = putStrLn (show s) >> interp next
+interp (Free adj@(AdjDiff v next))    = putStrLn (show adj) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 
