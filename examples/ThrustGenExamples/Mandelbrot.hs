@@ -1,6 +1,7 @@
 import Ion.Base
 import Ion.Prelude
 
-mandlebrot =
+mandelbrot :: Int -> Ion a 
+mandelbrot maxIters = undefined
 
-main = return ()
+main = toThrust $ mandelbrot 

@@ -10,6 +10,7 @@ module Ion.Base ( L.vector
                 , L.bool
                 , L.int
                 , L.complex
+                , T.Ion
                 , C.Complex((:+))
                 , (B.&&*)
                 , (B.||*)

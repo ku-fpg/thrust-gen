@@ -42,6 +42,7 @@ data Expr a where
   -- Conditional Logic
   While :: Expr Bool -> Expr a -> Expr a
   If    :: Expr Bool -> Expr a -> Expr a -> Expr a
+  Set   :: Expr a    -> Expr a -> Expr a
   
 data CFunc a = CFunc { name     :: Name
                      , body     :: Expr a
@@ -120,6 +121,16 @@ instance  Show (Expr a) where
                       ++ (show $ realPart c) ++ "," 
                       ++ (show $ imagPart c) ++ ")"
  
+  show (If c a b)   = "if(" ++ (show c) ++ "){\n" 
+                            ++ show a ++ "}\n"
+                            ++ "else {\n" 
+                            ++ show b ++ "}\n"
+
+  show (While c a)  = "while(" ++ show c ++ "){\n"
+                               ++ show a ++ "}\n"
+
+
+
 instance Show ImportDecl where
   show Thrust = "thrust/"
   show Stdlib = ""
