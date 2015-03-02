@@ -30,6 +30,9 @@ getFext = reverse . takeWhile (/= '.') . reverse
 
 dropFext = takeWhile (/= '.') 
 
+action Run   = shell ("./ionize-build/ion-gen") empty
+action Build = shell "echo \"generated files in ionize-build\"" empty 
+
 main = do args <- getArgs
           let hsFile'  = args !! 1 
               hsFile   = pack hsFile'
@@ -41,11 +44,11 @@ main = do args <- getArgs
               ionExe   = "ion-gen"
               runhs    = "runhaskell " <> hsFile <> " > " <> ionDir <> "/" <> cuFile 
           
-          case toMode $ runMode of
+          case (toMode $ runMode) of
             Help  -> do helpMessage
                         die ""
 
-            _     -> do case (getFext $ hsFile') of
+            md    -> do case (getFext $ hsFile') of
                           "hs"  -> liftIO $ echo "Compiling hs file"
                           _     -> die "Error, arg1 must be haskell file"
 
@@ -54,9 +57,5 @@ main = do args <- getArgs
                         echo "Compiling cu file"
                         nvcc ionDir cuFile 
                         mv "a.out" "./ionize-build/ion-gen"
-
-                        case toMode $ runMode of
-                          Run   -> shell ("./ionize-build/ion-gen") empty  
-                          Build -> shell "echo \"generated files in ionize-build\"" empty 
-
-         
+                        action md 
+                          
