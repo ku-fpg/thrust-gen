@@ -26,6 +26,9 @@ getLibInfo (Cout _ _)       = [([Stdlib], "iostream")]
 getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
 getLibInfo (Sort _ _)       = [([Thrust], "sort")]
 getLibInfo (AdjDiff _ _)    = [([Thrust], "adjacent_difference")]
+getLibInfo (UpperBound _ _ _ _) = [([Thrust], "binary_search")]
+getLibInfo (IDecl i _)        = [([Thrust, Iterator], case i of
+                                                         CountingIterator _ _ -> "counting_iterator")]
 
 getLib :: Statement a -> String
 getLib l = concatMap 
@@ -39,24 +42,28 @@ getLib l = concatMap
                         ++ ">\n") (getLibInfo l) 
 
 getLibs :: Stmt a -> IO [String]
-getLibs (Free d@(Decl _ next))       = liftM2 (++) (return [getLib d]) (getLibs next)
-getLibs (Free l@(Load _ next))       = liftM2 (++) (return [getLib l]) (getLibs next)
-getLibs (Free t@(Trans _ _ next))    = liftM2 (++) (return [getLib t]) (getLibs next)
-getLibs (Free c@(Cout _ next))       = liftM2 (++) (return [getLib c]) (getLibs next)
-getLibs (Free f@(Fold _ _ _ _ next)) = liftM2 (++) (return [getLib f]) (getLibs next)
-getLibs (Free s@(Sort _ next))       = liftM2 (++) (return [getLib s]) (getLibs next)
-getLibs (Free a@(AdjDiff _ next))    = liftM2 (++) (return [getLib a]) (getLibs next)
-getLibs (Pure _)                     = return []
+getLibs (Free d@(Decl _ next))             = liftM2 (++) (return [getLib d]) (getLibs next)
+getLibs (Free l@(Load _ next))             = liftM2 (++) (return [getLib l]) (getLibs next)
+getLibs (Free t@(Trans _ _ next))          = liftM2 (++) (return [getLib t]) (getLibs next)
+getLibs (Free c@(Cout _ next))             = liftM2 (++) (return [getLib c]) (getLibs next)
+getLibs (Free f@(Fold _ _ _ _ next))       = liftM2 (++) (return [getLib f]) (getLibs next)
+getLibs (Free s@(Sort _ next))             = liftM2 (++) (return [getLib s]) (getLibs next)
+getLibs (Free a@(AdjDiff _ next))          = liftM2 (++) (return [getLib a]) (getLibs next)
+getLibs (Free c@(IDecl _ next))            = liftM2 (++) (return [getLib c]) (getLibs next)
+getLibs (Free u@(UpperBound _ _ _ next))       = liftM2 (++) (return [getLib u]) (getLibs next)
+getLibs (Pure _)                           = return []
 
 getStructs :: Stmt a -> IO [String] 
-getStructs (Free d@(Decl _ next))           = getStructs next
-getStructs (Free l@(Load _ next))           = getStructs next
-getStructs (Free t@(Trans func _ next))     = liftM2 (++) (return [(show func)]) (getStructs next)
-getStructs (Free c@(Cout _ next))           = getStructs next
-getStructs (Free f@(Fold _ func _ _ next))  = liftM2 (++) (return [(show func)]) (getStructs next)
-getStructs (Free s@(Sort _ next))           = getStructs next
-getStructs (Free a@(AdjDiff _ next))        = getStructs next
-getStructs (Pure _)                         = return []
+getStructs (Free d@(Decl _ next))                   = getStructs next
+getStructs (Free l@(Load _ next))                   = getStructs next
+getStructs (Free t@(Trans func _ next))             = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Free c@(Cout _ next))                   = getStructs next
+getStructs (Free f@(Fold _ func _ _ next))          = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Free s@(Sort _ next))                   = getStructs next
+getStructs (Free a@(AdjDiff _ next))                = getStructs next
+getStructs (Free c@(IDecl _ next))                  = getStructs next
+getStructs (Free u@(UpperBound _ _ _ next))       = getStructs next
+getStructs (Pure _)                                 = return []
 
 newLabel :: Ion Int
 newLabel = get >>= \p -> put (p+1) >> return p
@@ -76,7 +83,7 @@ vector _ elems =    do p <- newLabel
                        let name = "v" ++ show p
                            sz = length elems
                            vector = HVector name sz (zip [0..(sz-1)] (map toExpr elems))
-                       liftF $ Decl (vector) vector
+                       liftF $ Decl vector vector
 
 -- copy a host vector into a device vector
 load :: Vector a -> Ion (Vector a)
@@ -100,14 +107,25 @@ sort v = liftF $ Sort v v
 adjdiff :: Vector a -> Ion (Vector a)
 adjdiff v = liftF $ AdjDiff v v
 
+countingiterator :: (Num a, ToExpr a) => (a -> Expr a) -> a -> Ion (Iterator a)
+countingiterator _ expr = do p <- newLabel
+                             let name = "i" ++ show p
+                                 iter = CountingIterator name (toExpr expr)
+                             liftF $ IDecl iter iter
+
+upperbound :: Vector a -> Vector a -> Iterator a -> Ion(Vector a)
+upperbound input output iter = liftF $ UpperBound input output iter output
+
 interp :: Stmt a -> IO ()
-interp (Free a@(Decl v next))         = putStrLn (show a) >> interp next
-interp (Free l@(Load v next))         = putStrLn (show l) >> interp next
-interp (Free t@(Trans fun v next))    = putStrLn (show t) >> interp next
-interp (Free c@(Cout v next))         = putStrLn (show c) >> interp next
-interp (Free f@(Fold _ fun v _ next)) = putStrLn (show f) >> interp next
-interp (Free s@(Sort v next))         = putStrLn (show s) >> interp next
-interp (Free adj@(AdjDiff v next))    = putStrLn (show adj) >> interp next
+interp (Free a@(Decl v next))                 = putStrLn (show a) >> interp next
+interp (Free l@(Load v next))                 = putStrLn (show l) >> interp next
+interp (Free t@(Trans fun v next))            = putStrLn (show t) >> interp next
+interp (Free c@(Cout v next))                 = putStrLn (show c) >> interp next
+interp (Free f@(Fold _ fun v _ next))         = putStrLn (show f) >> interp next
+interp (Free s@(Sort v next))                 = putStrLn (show s) >> interp next
+interp (Free a@(AdjDiff v next))              = putStrLn (show a) >> interp next
+interp (Free i@(IDecl iter next))             = putStrLn (show i) >> interp next
+interp (Free u@(UpperBound v1 v2 i next))     = putStrLn (show u) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 

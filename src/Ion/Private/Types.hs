@@ -63,6 +63,10 @@ data Vector a = HVector   { label :: String
                           }
   deriving Show
 
+data Iterator a = CountingIterator   { ilabel :: String
+                                     , initval :: Expr a
+                                     }
+
 data Statement next where 
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
@@ -72,13 +76,15 @@ data Statement next where
   FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next
   Sort  :: Vector a -> next -> Statement next
   AdjDiff :: Vector a -> next -> Statement next
+  IDecl :: Iterator a -> next -> Statement next
+  UpperBound :: Vector a -> Vector a -> Iterator a -> next -> Statement next
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
 data LocationDecl = HostDecl | DeviceDecl | Both | Neither
 data InheritDecl  = None
 data FuncType     = Regular | StructBased
-data ImportDecl   = Stdlib | Thrust | Cuda
+data ImportDecl   = Stdlib | Thrust | Cuda | Iterator
 
 {- Conversion Instances ------------------------------------------}
 class ToExpr a where
@@ -134,7 +140,8 @@ instance  Show (Expr a) where
 instance Show ImportDecl where
   show Thrust = "thrust/"
   show Stdlib = ""
-  show Cuda   = "" 
+  show Cuda   = ""
+  show Iterator = "iterator/"
 
 -- TODO lookup thrust decl types
 instance Show InheritDecl where
@@ -217,7 +224,21 @@ instance Show (Statement next) where
                                                  ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident),
-                                                   (fst $ iters ident)]) 
+                                                   (fst $ iters ident)])
+                                                 
+
+  show (AdjDiff (DVector ident sz elems) next) = show $ AdjDiff (HVector ident sz elems) next
+
+  show (UpperBound (HVector ident1 sz1 elems1) 
+                   (HVector ident2 sz2 elems2) 
+                   (CountingIterator ident expr) next) = "\tthrust::upper_bound("
+                                                         ++ (concat $ intersperse "," $
+                                                         [(fst $ iters ident1),
+                                                          (snd $ iters ident1),
+                                                          ident,
+                                                          ident ++ " + " ++ show sz2,
+                                                          (fst $ iters ident2)])
+                                                         ++ ");"
 
   show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
                                               ++ (concat $ intersperse "," $
@@ -245,6 +266,15 @@ instance Show (Statement next) where
                                                           ++ (snd $ iters ident) ++ ", "
                                                           ++ (show init) ++ ", "
                                                           ++ (name fun) ++ "());"
+
+  show (IDecl (CountingIterator ident expr) next) = "\tthrust::counting_iterator<" 
+                                                     ++ retType expr
+                                                     ++ "> "
+                                                     ++ ident
+                                                     ++ "("
+                                                     ++ show expr
+                                                     ++ ");"
+
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
@@ -304,6 +334,8 @@ instance Functor Statement where
   fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next)
   fmap f (Sort v next) = Sort v (f next)
   fmap f (AdjDiff v next) = AdjDiff v (f next)
+  fmap f (IDecl iter next) = IDecl iter (f next)
+  fmap f (UpperBound v1 v2 i next) = UpperBound v1 v2 i (f next)
 
 {- Convenience operators for (Expr) bool's  -}
 instance Boolean (Expr Bool) where

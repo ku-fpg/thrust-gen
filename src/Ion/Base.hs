@@ -4,6 +4,8 @@ module Ion.Base ( L.vector
                 , L.adjdiff
                 , L.sort
                 , L.cout
+                , L.countingiterator
+                , L.upperbound
                 , (L.#)
                 , (L.<#>)
                 , L.toThrust
