@@ -135,7 +135,7 @@ toThrust prog = do let prog' = evalStateT prog 0
                    putStrLn $ concatMap (++"") $ nub res
                    funcs <- getStructs prog'
                    putStrLn $ concatMap (++"\n") funcs
-                   putStrLn "int main (){"
+                   putStrLn "int main (void){"
                    interp prog'
 
 infixr 4 #

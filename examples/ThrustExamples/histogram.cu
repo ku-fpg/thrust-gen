@@ -95,6 +95,17 @@ void dense_histogram(const Vector1& input,
   // compute the histogram by taking differences of the cumulative histogram
   thrust::adjacent_difference(histogram.begin(), histogram.end(),
                               histogram.begin());
+void dense_histogram(const Vector1& input,
+                           Vector2& histogram)
+{
+  typedef typename Vector1::value_type ValueType; // input value type
+  typedef typename Vector2::value_type IndexType; // histogram index type
+
+  // copy input data (could be skipped if input is allowed to be modified)
+  thrust::device_vector<ValueType> data(input);
+    
+  // print the initial data
+  print_vector("initial data", data);
 
   // print the histogram
   print_vector("histogram", histogram);
