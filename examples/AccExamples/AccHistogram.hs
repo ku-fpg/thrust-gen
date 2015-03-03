@@ -1,5 +1,5 @@
 import Data.Array.Accelerate as Acc
-import Data.Array.Accelerate.Interpreter
+import Data.Array.Accelerate.CUDA
 import Data.Int
 
 histogramAcc :: (Int,Int) -> Vector Float -> Acc (Vector Int32)
@@ -9,5 +9,5 @@ histogramAcc (m,n) vec =
       ones  = generate (shape vec') (const 1)
   in permute (+) zeros (\ix -> index1 (Acc.floor (vec' Acc.! ix) :: Exp Int)) ones
 
-main = do let vec = Acc.fromList (Z :. 5) [1,2,3,3,4] :: Vector Float
-          print $ run $ histogramAcc (0,5) vec
+main = do let vec = Acc.fromList (Z :. 5000000) [1..5000000] :: Vector Float
+          print $ run $ Acc.sum $ histogramAcc (0,5000001) vec
