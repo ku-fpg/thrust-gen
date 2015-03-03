@@ -1,4 +1,4 @@
-# thrust-gen
+# ion 
 A Synthesizer for the [Thrust C++-based DSL](https://developer.nvidia.com/Thrust).
 
 ## Building
