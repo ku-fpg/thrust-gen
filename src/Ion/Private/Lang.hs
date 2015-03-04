@@ -139,7 +139,7 @@ interp (Free f@(Fold _ fun v _ next))         = putStrLn (show f) >> interp next
 interp (Free s@(Sort v next))                 = putStrLn (show s) >> interp next
 interp (Free a@(AdjDiff v next))              = putStrLn (show a) >> interp next
 interp (Free i@(IDecl iter next))             = putStrLn (show i) >> interp next
-interp (Free u@(UpperBound v1 v2 i next)) \t    = putStrLn (show u) >> interp next
+interp (Free u@(UpperBound v1 v2 i next))     = putStrLn (show u) >> interp next
 interp (Free r@(RandomGen v rand next))       = putStrLn (show r) >> interp next
 interp (Pure _)    = putStrLn "}"
 
