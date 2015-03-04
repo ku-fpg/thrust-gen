@@ -262,7 +262,7 @@ instance Show (Statement next) where
                                                 ++ "[i] << \" \";}\n"
                                                 ++ "\tstd::cout << std::endl;"
 
-  show (Fold to fun (HVector ident _ elems) init _) =  "\t" ++ (retType $ snd $ head elems)
+  show (Fold to fun (HVector ident _ elems) init _) =  "\t" ++ (retType init)
                                                           ++ " "
                                                           ++ to 
                                                           ++ " = "

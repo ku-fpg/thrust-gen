@@ -11,7 +11,7 @@ import Ion.Private.Types
 import Ion.Private.Lang
 import Control.Monad.Free
 
-reduce :: (Show a) => (Expr a, (Expr b -> Expr b -> Expr a)) 
+reduce :: (Show a) => (Expr a, (Expr a -> Expr a -> Expr a)) 
 	        -> Vector a 
 		      -> Ion (Vector a)
 reduce pr x = reduce__ x (fst $ pr) (snd $ pr)
@@ -19,11 +19,11 @@ reduce pr x = reduce__ x (fst $ pr) (snd $ pr)
 -- Using double underscore suffix to denote same-name helper functions,
 -- not to be exported
 reduce__ :: (Show a) => Vector a -> Expr a 
-	          -> (Expr b -> Expr c -> Expr a) 
+	          -> (Expr a -> Expr a -> Expr a) 
 		        -> Ion (Vector a)
 reduce__ c initV expr = do p  <- newLabel
                            p2 <- newLabel
-                           let body = (expr (Var "a")) (Var "b")
+                           let body = (expr (Var "a"))(Var "b")  
                                to   = "v" ++ show p2
                                name = "f" ++ show p
                                func = CFunc name body Neither None StructBased 2
