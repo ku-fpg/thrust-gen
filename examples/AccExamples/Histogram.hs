@@ -9,5 +9,5 @@ histogramAcc (m,n) vec =
       ones  = generate (shape vec') (const 1)
   in permute (+) zeros (\ix -> index1 (Acc.floor (vec' Acc.! ix) :: Exp Int)) ones
 
-main = do let vec = Acc.fromList (Z :. 5000000) [1..5000000] :: Vector Float
-          print $ run $ Acc.sum $ histogramAcc (0,5000001) vec
+main = do let vec = Acc.fromList (Z :. 5) [1..5] :: Vector Float
+          print $ run $ Acc.sum $ histogramAcc (0,6) vec

@@ -97,7 +97,7 @@ int main(void)
 {
 
 
-  const int N = 5000000;
+  const int N = 5;
 
 
   // generate random data on the host

@@ -2,7 +2,7 @@ import Ion.Base
 import Ion.Prelude
 
 main :: IO ()
-main = toThrust $ do f    <- vector int [0,2,3,5]
+main = toThrust $ do f    <- vector int [1..5]
                      cout f
                      
                      --empty vector to store histogram counts in
