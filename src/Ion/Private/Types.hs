@@ -295,7 +295,7 @@ instance Show (Statement next) where
                                               ++ "\tthrust::generate("
                                               ++ (fst $ iters id) ++ ", "
                                               ++ (snd $ iters id) ++ ", "
-                                              ++ "dist(" ++ ident !! 1 ++ "));\n"
+                                              ++ (ident !! 1) ++ "(" ++ ident !! 0 ++ "));\n"
                                                   
 
 {- Num, Ord, Frac Instances -------------------------------------}
