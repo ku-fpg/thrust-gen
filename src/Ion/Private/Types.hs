@@ -28,7 +28,7 @@ data Expr a where
   C     :: Char           -> Expr Char
   D     :: Double         -> Expr Double
   I     :: Int            -> Expr Int
-  Cx    :: Complex Double -> Expr (Complex Double)
+  Cx    :: Complex Float  -> Expr (Complex Float)
 
   -- Supported operations
   And   :: Expr a   -> Expr a -> Expr a
@@ -67,6 +67,10 @@ data Iterator a = CountingIterator   { ilabel :: String
                                      , initval :: Expr a
                                      }
 
+data Random a = Random { rLabels :: [String]
+                     , bounds  :: (Int, Int)
+                     }
+
 data Statement next where 
   Decl  :: Vector a -> next -> Statement next 
   Trans :: CFunc a -> Vector a -> next -> Statement next
@@ -74,10 +78,11 @@ data Statement next where
   Fold  :: (Show a) => Name -> CFunc a -> Vector a -> Expr a -> next -> Statement next
   Load  :: Vector a -> next -> Statement next
   FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next
-  Sort  :: Vector a -> next -> Statement next
-  AdjDiff :: Vector a -> next -> Statement next
-  IDecl :: Iterator a -> next -> Statement next
-  UpperBound :: Vector a -> Vector a -> Iterator a -> next -> Statement next
+  Sort        :: Vector a -> next -> Statement next
+  AdjDiff     :: Vector a -> next -> Statement next
+  IDecl       :: Iterator a -> next -> Statement next
+  UpperBound  :: Vector a -> Vector a -> Iterator a -> next -> Statement next
+  RandomGen   :: Vector a -> Random a -> next -> Statement next 
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -102,7 +107,7 @@ instance ToExpr Float where
 instance ToExpr Double where
   toExpr = D
 
-instance ToExpr (Complex Double) where
+instance ToExpr (Complex Float) where
   toExpr = Cx
 
 
@@ -275,6 +280,23 @@ instance Show (Statement next) where
                                                      ++ show expr
                                                      ++ ");"
 
+  show (RandomGen (HVector id _ elems) (Random ident (a,b))  next) = "\tstatic thrust::default_random_engine " 
+                                              ++ ident !! 0 
+                                              ++  ";\n"
+                                              ++ "\tstatic thrust::uniform_int_distribution<" 
+                                              ++ (retType $ snd $ head elems) 
+                                              ++ "> " 
+                                              ++ ident !! 1 
+                                              ++ "("
+                                              ++ show a 
+                                              ++ "," 
+                                              ++ show b 
+                                              ++ ");\n"
+                                              ++ "\tthrust::generate("
+                                              ++ (fst $ iters id) ++ ", "
+                                              ++ (snd $ iters id) ++ ", "
+                                              ++ "dist(" ++ ident !! 1 ++ "));\n"
+                                                  
 
 {- Num, Ord, Frac Instances -------------------------------------}
 {- This allows the Expr types to utilize regular arithmetic and
@@ -336,6 +358,7 @@ instance Functor Statement where
   fmap f (AdjDiff v next) = AdjDiff v (f next)
   fmap f (IDecl iter next) = IDecl iter (f next)
   fmap f (UpperBound v1 v2 i next) = UpperBound v1 v2 i (f next)
+  fmap f (RandomGen v rand next) = RandomGen v rand (f next)
 
 {- Convenience operators for (Expr) bool's  -}
 instance Boolean (Expr Bool) where
@@ -344,20 +367,6 @@ instance Boolean (Expr Bool) where
   notB b1 = Not b1
   true = B True
   false = B False
-
-{--
-(<*) :: Expr Int -> Expr Int -> Expr Bool
-(I i1) .< (I i2) = B $ i1 < i2
-
-(.>) :: Expr Int -> Expr Int -> Expr Bool
-(I i1) .> (I i2) = B $ i1 > i2
-
-(.<=) :: Expr Int -> Expr Int -> Expr Bool
-(I i1) .<= (I i2) = B $ i1 <= i2
-
-(.=>) :: Expr Int -> Expr Int -> Expr Bool
-(I i1) .=> (I i2) = B $ i1 >= i2
---}
 
 {- Helper functions ---------------------------------------------}
 {- Only for use in show instance, not to be exported It may be 
@@ -368,7 +377,7 @@ retType (F _)       = "float"
 retType (D _)       = "double"
 retType (C _)       = "char"
 retType (B _)       = "bool"
-retType (Cx _)      = "complex<double> " -- Add space for C++98 compilers
+retType (Cx _)      = "complex<float> " -- Add space for C++98 compilers
 retType (Add a b)   = concat $ nub $ [retType a] ++ [retType b]
 retType (Mult a b)  = concat $ nub $ [retType a] ++ [retType b]
 retType (Sub a b)   = concat $ nub $ [retType a] ++ [retType b]

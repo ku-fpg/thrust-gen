@@ -27,6 +27,8 @@ getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
 getLibInfo (Sort _ _)       = [([Thrust], "sort")]
 getLibInfo (AdjDiff _ _)    = [([Thrust], "adjacent_difference")]
 getLibInfo (UpperBound _ _ _ _) = [([Thrust], "binary_search")]
+getLibInfo (RandomGen _ _ _) = [([Thrust], "generate")]
+                                 ++  [([Thrust], "random")]
 getLibInfo (IDecl i _)        = [([Thrust, Iterator], case i of
                                                          CountingIterator _ _ -> "counting_iterator")]
 
@@ -50,20 +52,22 @@ getLibs (Free f@(Fold _ _ _ _ next))       = liftM2 (++) (return [getLib f]) (ge
 getLibs (Free s@(Sort _ next))             = liftM2 (++) (return [getLib s]) (getLibs next)
 getLibs (Free a@(AdjDiff _ next))          = liftM2 (++) (return [getLib a]) (getLibs next)
 getLibs (Free c@(IDecl _ next))            = liftM2 (++) (return [getLib c]) (getLibs next)
-getLibs (Free u@(UpperBound _ _ _ next))       = liftM2 (++) (return [getLib u]) (getLibs next)
+getLibs (Free u@(UpperBound _ _ _ next))   = liftM2 (++) (return [getLib u]) (getLibs next)
+getLibs (Free r@(RandomGen _ _ next))      = liftM2 (++) (return [getLib r]) (getLibs next)
 getLibs (Pure _)                           = return []
 
 getStructs :: Stmt a -> IO [String] 
-getStructs (Free d@(Decl _ next))                   = getStructs next
-getStructs (Free l@(Load _ next))                   = getStructs next
-getStructs (Free t@(Trans func _ next))             = liftM2 (++) (return [(show func)]) (getStructs next)
-getStructs (Free c@(Cout _ next))                   = getStructs next
-getStructs (Free f@(Fold _ func _ _ next))          = liftM2 (++) (return [(show func)]) (getStructs next)
-getStructs (Free s@(Sort _ next))                   = getStructs next
-getStructs (Free a@(AdjDiff _ next))                = getStructs next
-getStructs (Free c@(IDecl _ next))                  = getStructs next
-getStructs (Free u@(UpperBound _ _ _ next))       = getStructs next
-getStructs (Pure _)                                 = return []
+getStructs (Free d@(Decl _ next))             = getStructs next
+getStructs (Free l@(Load _ next))             = getStructs next
+getStructs (Free t@(Trans func _ next))       = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Free c@(Cout _ next))             = getStructs next
+getStructs (Free f@(Fold _ func _ _ next))    = liftM2 (++) (return [(show func)]) (getStructs next)
+getStructs (Free s@(Sort _ next))             = getStructs next
+getStructs (Free a@(AdjDiff _ next))          = getStructs next
+getStructs (Free c@(IDecl _ next))            = getStructs next
+getStructs (Free u@(UpperBound _ _ _ next))   = getStructs next
+getStructs (Free r@(RandomGen _ _ next))  = getStructs next
+getStructs (Pure _)                           = return []
 
 newLabel :: Ion Int
 newLabel = get >>= \p -> put (p+1) >> return p
@@ -74,7 +78,7 @@ int = I
 bool :: Bool -> Expr Bool
 bool = B
 
-complex :: Complex Double -> Expr (Complex Double)
+complex :: Complex Float -> Expr (Complex Float)
 complex = Cx
 
 -- initialize a host vector
@@ -85,10 +89,20 @@ vector _ elems =    do p <- newLabel
                            vector = HVector name sz (zip [0..(sz-1)] (map toExpr elems))
                        liftF $ Decl vector vector
 
+random :: Vector a -> (Int, Int) -> Ion (Random a)
+random v (a,b)      = do nm  <- newLabel
+                         nm2 <- newLabel
+                         nm3 <- newLabel
+                         let name  = "r" ++ show nm
+                             name2 = "r" ++ show nm2
+                             name3 = "r" ++ show nm3
+                             rand = Random {rLabels = [name, name2, name3], bounds = (a,b)}
+                         liftF $ RandomGen v rand rand  
+                         
 -- copy a host vector into a device vector
 load :: Vector a -> Ion (Vector a)
 load v = let dvec = DVector ('d' : (drop 1 $ label v)) (size v) (elems v)
-         in liftF $ Load dvec dvec
+         in liftF $ Load dvec dvec 
 
 -- a map operation across either host or device vectors
 transform :: Vector a -> (Expr a -> Expr a) -> Ion (Vector a) 
@@ -125,7 +139,8 @@ interp (Free f@(Fold _ fun v _ next))         = putStrLn (show f) >> interp next
 interp (Free s@(Sort v next))                 = putStrLn (show s) >> interp next
 interp (Free a@(AdjDiff v next))              = putStrLn (show a) >> interp next
 interp (Free i@(IDecl iter next))             = putStrLn (show i) >> interp next
-interp (Free u@(UpperBound v1 v2 i next))     = putStrLn (show u) >> interp next
+interp (Free u@(UpperBound v1 v2 i next)) \t    = putStrLn (show u) >> interp next
+interp (Free r@(RandomGen v rand next))       = putStrLn (show r) >> interp next
 interp (Pure _)    = putStrLn "}"
 
 

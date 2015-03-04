@@ -10,6 +10,7 @@ module Ion.Base ( L.vector
                 , (L.<#>)
                 , L.toThrust
                 , L.bool
+                , L.random
                 , L.int
                 , L.complex
                 , T.Ion

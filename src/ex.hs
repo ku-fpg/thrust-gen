@@ -4,6 +4,8 @@ import Ion.Prelude
 main :: IO ()
 main = toThrust $ do --a <- vector int [0..10]
                      f <- vector int [0,2,3,5]
+                     z <- vector int [0..100]
+                     z # random <#> (0,9999)
                      cout f
                      z <- vector int (take 6 $ cycle [0])
                      --d <- load f
@@ -17,6 +19,7 @@ main = toThrust $ do --a <- vector int [0..10]
                      res <- upperbound f z a
                      res' <- adjdiff res
                      cout res'
+                     
                      {-b <- vector bool [False, True]
                      c <- vector complex [2 :+ 3, 3 :+ 5]
                      d <- load a 
