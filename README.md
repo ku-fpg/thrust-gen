@@ -9,7 +9,6 @@ This should be as simple as:
 git clone https://github.com/ku-fpg/thrust-gen
 cd thrust-gen/
 cabal build
-cabal build ionize
 cabal install
 ```
 

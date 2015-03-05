@@ -87,7 +87,7 @@ data Statement next where
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
 data LocationDecl = HostDecl | DeviceDecl | Both | Neither
-data InheritDecl  = None
+data InheritDecl  = None | BinaryFunc
 data FuncType     = Regular | StructBased
 data ImportDecl   = Stdlib | Thrust | Cuda | Iterator
 
@@ -151,13 +151,14 @@ instance Show ImportDecl where
 -- TODO lookup thrust decl types
 instance Show InheritDecl where
   show l = case l of 
-            None -> ""
+            BinaryFunc -> " : public thrust::binary_function"
+            None       -> ""
 
 instance Show LocationDecl where
   show l = case l of 
-            HostDecl   -> "__host__"
-            DeviceDecl -> "__device__"
-            Both       -> "__host__ __device__"
+            HostDecl   -> "__host__ "
+            DeviceDecl -> "__device__ "
+            Both       -> "__host__ __device__ \n"
             Neither    -> ""
 
 instance Show (CFunc a) where
@@ -169,8 +170,12 @@ instance Show (CFunc a) where
                       StructBased -> "struct " 
                                      ++ (name func)  
                                      ++ (case inherit func of
+                                           BinaryFunc -> show (inherit func) ++ "<const " ++ (retType $ body func) ++ "&"
+                                                                             ++ ", const " ++ (retType $ body func) ++ "&"
+                                                                             ++ ", " ++ (retType $ body func) ++ ">\n" 
                                            None -> "")
                                      ++ " {\n\t"
+                                     ++ (show $ loc func) 
                                      ++ (retType $ body func) ++ " operator()(" 
                                      ++ (case numArgs func of 
                                           1 -> args func
@@ -230,6 +235,7 @@ instance Show (Statement next) where
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident),
                                                    (fst $ iters ident)])
+                                                 ++ ");"
                                                  
 
   show (AdjDiff (DVector ident sz elems) next) = show $ AdjDiff (HVector ident sz elems) next

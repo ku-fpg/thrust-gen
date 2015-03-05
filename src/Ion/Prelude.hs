@@ -26,7 +26,7 @@ reduce__ c initV expr = do p  <- newLabel
                            let body = (expr (Var "a"))(Var "b")  
                                to   = "v" ++ show p2
                                name = "f" ++ show p
-                               func = CFunc name body Neither None StructBased 2
+                               func = CFunc name body Both BinaryFunc StructBased 2
                            liftF $ Fold to func c initV c
  
 all_ :: (Boolean b) => (b, (b -> b -> b))
