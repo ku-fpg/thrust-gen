@@ -1,4 +1,6 @@
 {-- Emulating key pieces of the thrust API -}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE DataKinds  #-}
 
 module Ion.Prelude ( all_
 		               , any_
@@ -11,16 +13,16 @@ import Ion.Private.Types
 import Ion.Private.Lang
 import Control.Monad.Free
 
-reduce :: (Show a) => (Expr a, (Expr a -> Expr a -> Expr a)) 
-	        -> Vector a 
-		      -> Ion (Vector a)
+reduce :: forall a. (Show a) => (Expr a, (Expr a -> Expr a -> Expr a)) 
+	        -> Vector Device a 
+		      -> Ion (Vector Device a)
 reduce pr x = reduce__ x (fst $ pr) (snd $ pr)
 
 -- Using double underscore suffix to denote same-name helper functions,
 -- not to be exported
-reduce__ :: (Show a) => Vector a -> Expr a 
+reduce__ :: (Show a) => Vector Device a -> Expr a 
 	          -> (Expr a -> Expr a -> Expr a) 
-		        -> Ion (Vector a)
+		        -> Ion (Vector Device a)
 reduce__ c initV expr = do p  <- newLabel
                            p2 <- newLabel
                            let body = (expr (Var "a"))(Var "b")  

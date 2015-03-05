@@ -4,6 +4,8 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Ion.Private.Lang where
 import Ion.Private.Types
@@ -82,14 +84,15 @@ complex :: Complex Float -> Expr (Complex Float)
 complex = Cx
 
 -- initialize a host vector
-vector :: (ToExpr a) => (a -> Expr a) -> [a] -> Ion (Vector a)
+vector :: forall a. (ToExpr a) => (a -> Expr a) -> [a] -> Ion (Vector Host a)
 vector _ elems =    do p <- newLabel
                        let name = "v" ++ show p
                            sz = length elems
-                           vector = HVector name sz (zip [0..(sz-1)] (map toExpr elems))
-                       liftF $ Decl vector vector
+                           vect :: Vector Host a
+                           vect = Vector name sz (zip [0..(sz-1)] (map toExpr elems))
+                       liftF $ Decl vect vect
 
-random :: Vector a -> (Int, Int) -> Ion (Random a)
+random :: Vector Host a -> (Int, Int) -> Ion (Random a)
 random v (a,b)      = do nm  <- newLabel
                          nm2 <- newLabel
                          nm3 <- newLabel
@@ -100,25 +103,26 @@ random v (a,b)      = do nm  <- newLabel
                          liftF $ RandomGen v rand rand  
                          
 -- copy a host vector into a device vector
-load :: Vector a -> Ion (Vector a)
-load v = let dvec = DVector ('d' : (drop 1 $ label v)) (size v) (elems v)
+load :: forall a. Vector Host a -> Ion (Vector Device a)
+load v = let dvec :: Vector Device a 
+             dvec = Vector ('d' : (drop 1 $ label v)) (size v) (elems v)
          in liftF $ Load dvec dvec 
 
 -- a map operation across either host or device vectors
-transform :: Vector a -> (Expr a -> Expr a) -> Ion (Vector a) 
+transform :: Vector Device a -> (Expr a -> Expr a) -> Ion (Vector Device a) 
 transform c expr = do p <- newLabel
                       let body = (expr (Var "a"))
                           name = "f" ++ show p
                           func = CFunc name body Neither None StructBased 1 
                       liftF $ Trans func c c
 
-cout :: Vector a -> Ion ()
+cout :: Vector Host a -> Ion ()
 cout v = liftF $ Cout v ()
 
-sort :: Vector a -> Ion (Vector a)
+sort :: Vector Device a -> Ion (Vector Device a)
 sort v = liftF $ Sort v v
 
-adjdiff :: Vector a -> Ion (Vector a)
+adjdiff :: Vector Device a -> Ion (Vector Device a)
 adjdiff v = liftF $ AdjDiff v v
 
 countingiterator :: (Num a, ToExpr a) => (a -> Expr a) -> a -> Ion (Iterator a)
@@ -127,7 +131,7 @@ countingiterator _ expr = do p <- newLabel
                                  iter = CountingIterator name (toExpr expr)
                              liftF $ IDecl iter iter
 
-upperbound :: Vector a -> Vector a -> Iterator a -> Ion(Vector a)
+upperbound :: Vector Device a -> Vector Device a -> Iterator a -> Ion(Vector Device a)
 upperbound input output iter = liftF $ UpperBound input output iter output
 
 interp :: Stmt a -> IO ()

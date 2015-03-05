@@ -3,6 +3,9 @@
 {-# LANGUAGE DeriveFunctor #-} 
 {-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE PolyKinds #-}
 
 module Ion.Private.Types where
 
@@ -52,15 +55,16 @@ data CFunc a = CFunc { name     :: Name
                      , numArgs  :: Int
                      }
 
-data Vector a = HVector   { label :: String
-                          , size  :: Int
-                          , elems :: [(Int, Expr a)]
-                          }
+{-- Vector definitions ---------------------------------}
 
-               | DVector  { _label :: String
-                          , _size  :: Int
-                          , _elems :: [(Int, Expr a)]
-                          }
+-- Phantoms
+data Location = Host | Device
+
+-- Inner type, not to be exposed
+data Vector (l::Location) a = Vector { label :: String
+                                     , size  :: Int
+                                     , elems :: [(Int, Expr a)]
+                                     }
   deriving Show
 
 data Iterator a = CountingIterator   { ilabel :: String
@@ -68,21 +72,21 @@ data Iterator a = CountingIterator   { ilabel :: String
                                      }
 
 data Random a = Random { rLabels :: [String]
-                     , bounds  :: (Int, Int)
-                     }
+                       , bounds  :: (Int, Int)
+                       }
 
 data Statement next where 
-  Decl  :: Vector a -> next -> Statement next 
-  Trans :: CFunc a -> Vector a -> next -> Statement next
-  Cout  :: Vector a -> next -> Statement next
-  Fold  :: (Show a) => Name -> CFunc a -> Vector a -> Expr a -> next -> Statement next
-  Load  :: Vector a -> next -> Statement next
-  FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector a -> next -> Statement next
-  Sort        :: Vector a -> next -> Statement next
-  AdjDiff     :: Vector a -> next -> Statement next
+  Decl  :: Vector Host a -> next -> Statement next 
+  Trans :: CFunc a -> Vector Device a -> next -> Statement next
+  Cout  :: Vector Host a -> next -> Statement next
+  Fold  :: (Show a) => Name -> CFunc a -> Vector Device a -> Expr a -> next -> Statement next
+  Load  :: Vector Device a -> next -> Statement next
+  FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector Device a -> next -> Statement next
+  Sort        :: Vector Device a -> next -> Statement next
+  AdjDiff     :: Vector Device a -> next -> Statement next
   IDecl       :: Iterator a -> next -> Statement next
-  UpperBound  :: Vector a -> Vector a -> Iterator a -> next -> Statement next
-  RandomGen   :: Vector a -> Random a -> next -> Statement next 
+  UpperBound  :: Vector Device a -> Vector Device a -> Iterator a -> next -> Statement next
+  RandomGen   :: Vector Host a -> Random a -> next -> Statement next 
 
 -- Declares whether a functor
 -- is to be executed on the GPU or CPU
@@ -201,7 +205,7 @@ iters :: String -> (String,String)
 iters ident = (ident ++ ".begin()", ident ++ ".end()")
 
 instance Show (Statement next) where
-  show (Decl (HVector ident sz elems) next) = "\tthrust::host_vector<"
+  show (Decl (Vector ident sz elems) next) = "\tthrust::host_vector<"
                                           ++ (retType $ snd $ head elems) 
                                           ++ "> " 
                                           ++ ident 
@@ -213,8 +217,7 @@ instance Show (Statement next) where
                                             ++ "] = "
                                             ++ (show val) 
                                             ++ ";\n\t") elems
-
-  show (Load (DVector ident sz elems) next) = "\tthrust::device_vector<"
+  show (Load (Vector ident sz elems) next) = "\tthrust::device_vector<"
                                           ++ (retType $ snd $ head elems)
                                           ++ "> "
                                           ++ ident
@@ -222,15 +225,13 @@ instance Show (Statement next) where
                                           ++ drop 1 ident
                                           ++ ";\n"
 
-  show (Sort (HVector ident sz elems) next) = "\tthrust::sort("
+  show (Sort (Vector ident sz elems) next) = "\tthrust::sort("
                                               ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident)]) 
                                               ++ ");"
 
-  show (Sort (DVector ident sz elems) next) = show $ Sort (HVector ident sz elems) next
-
-  show (AdjDiff (HVector ident sz elems) next) = "\tthrust::adjacent_difference("
+  show (AdjDiff (Vector ident sz elems) next) = "\tthrust::adjacent_difference("
                                                  ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident),
@@ -238,10 +239,8 @@ instance Show (Statement next) where
                                                  ++ ");"
                                                  
 
-  show (AdjDiff (DVector ident sz elems) next) = show $ AdjDiff (HVector ident sz elems) next
-
-  show (UpperBound (HVector ident1 sz1 elems1) 
-                   (HVector ident2 sz2 elems2) 
+  show (UpperBound (Vector ident1 sz1 elems1) 
+                   (Vector ident2 sz2 elems2) 
                    (CountingIterator ident expr) next) = "\tthrust::upper_bound("
                                                          ++ (concat $ intersperse "," $
                                                          [(fst $ iters ident1),
@@ -251,7 +250,7 @@ instance Show (Statement next) where
                                                           (fst $ iters ident2)])
                                                          ++ ");"
 
-  show (Trans fun (HVector ident _ _) next) = "\tthrust::transform(" 
+  show (Trans fun (Vector ident _ _) next) = "\tthrust::transform(" 
                                               ++ (concat $ intersperse "," $
                                                  [ (fst $ iters ident),
                                                    (snd $ iters ident),
@@ -259,16 +258,14 @@ instance Show (Statement next) where
                                               ++ "," ++ (name fun)
                                               ++ "());"
 
-  show (Trans f (DVector i a b) next) = show $ Trans f (HVector i a b) next
-
-  show (Cout (HVector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
+  show (Cout (Vector ident sz elems) next) = "\n\tfor (int i = 0; i < " 
                                                 ++ show sz 
                                                 ++ "; ++i){std::cout << "
                                                 ++ ident
                                                 ++ "[i] << \" \";}\n"
                                                 ++ "\tstd::cout << std::endl;"
 
-  show (Fold to fun (HVector ident _ elems) init _) =  "\t" ++ (retType init)
+  show (Fold to fun (Vector ident _ elems) init _) =  "\t" ++ (retType init)
                                                           ++ " "
                                                           ++ to 
                                                           ++ " = "
@@ -286,7 +283,7 @@ instance Show (Statement next) where
                                                      ++ show expr
                                                      ++ ");"
 
-  show (RandomGen (HVector id _ elems) (Random ident (a,b))  next) = "\tstatic thrust::default_random_engine " 
+  show (RandomGen (Vector id _ elems) (Random ident (a,b))  next) = "\tstatic thrust::default_random_engine " 
                                               ++ ident !! 0 
                                               ++  ";\n"
                                               ++ "\tstatic thrust::uniform_int_distribution<" 
