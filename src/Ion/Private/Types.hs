@@ -77,6 +77,7 @@ data Random a = Random { rLabels :: [String]
 
 data Statement next where 
   Decl  :: Vector Host a -> next -> Statement next 
+  DeclEmpty :: Vector Host a -> next -> Statement next
   Trans :: CFunc a -> Vector Device a -> next -> Statement next
   Cout  :: Vector Host a -> next -> Statement next
   Fold  :: (Show a) => Name -> CFunc a -> Vector Device a -> Expr a -> next -> Statement next
@@ -99,6 +100,21 @@ data ImportDecl   = Stdlib | Thrust | Cuda | Iterator
 {- Conversion Instances ------------------------------------------}
 class ToExpr a where
   toExpr :: a -> Expr a
+
+class InitExpr a where
+  init :: Expr a
+
+instance InitExpr Int where
+  init = I 0
+
+instance InitExpr Bool where
+  init = B False
+
+instance InitExpr Float where
+  init = F 0.0
+
+instance InitExpr Double where
+  init = D 0.0 
 
 instance ToExpr Bool where
   toExpr = B 
@@ -218,6 +234,13 @@ instance Show (Statement next) where
                                             ++ "] = "
                                             ++ (show val) 
                                             ++ ";\n\t") elems
+                                            
+  show (DeclEmpty (Vector ident sz elems) next) = "\tthrust::host_vector<"
+                                          ++ (retType $ snd $ head elems) 
+                                          ++ "> " 
+                                          ++ ident 
+                                          ++ "(" ++ show sz ++ ")"
+                                          ++ ";\n\t"
 
   show (Load (Vector ident sz elems) next) = "\tthrust::device_vector<"
                                           ++ (retType $ snd $ head elems)
@@ -364,6 +387,7 @@ instance Fractional (Expr Float) where
 
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
+  fmap f (DeclEmpty vec next) = DeclEmpty vec (f next)
   fmap f (Load vec next) = Load vec (f next)
   fmap f (Unload vec next) = Unload vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)

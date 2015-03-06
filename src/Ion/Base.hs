@@ -3,6 +3,7 @@ module Ion.Base ( L.vector
                 , L.transform
                 , L.adjdiff
                 , L.unload
+                , L.initVector
                 , L.sort
                 , L.cout
                 , L.countingiterator

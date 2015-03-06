@@ -9,7 +9,8 @@
 
 module Ion.Private.Lang where
 import Ion.Private.Types
-import Data.List
+import Data.List hiding (init)
+import Prelude hiding (init)
 import Data.Maybe
 import qualified Data.Set as Set
 import Data.Complex
@@ -22,6 +23,8 @@ getLibInfo (Decl v _) = [([Thrust], "host_vector")]
                         ++ (case (snd $ head $ elems $ v) of
                               Cx _ -> [([Cuda], "cuda_complex")]
                               _    -> [])
+
+getLibInfo (DeclEmpty v n)  = getLibInfo $ Decl v n
 getLibInfo (Load _ _)       = [([Thrust], "device_vector")]
 getLibInfo (Unload _ _)     = [([Thrust], "device_vector")]
 getLibInfo (Trans _ _ _)    = [([Thrust],"transform")]
@@ -48,6 +51,7 @@ getLib l = concatMap
 
 getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))             = liftM2 (++) (return [getLib d]) (getLibs next)
+getLibs (Free d@(DeclEmpty _ next))        = liftM2 (++) (return [getLib d]) (getLibs next)
 getLibs (Free l@(Load _ next))             = liftM2 (++) (return [getLib l]) (getLibs next)
 getLibs (Free u@(Unload _ next))           = liftM2 (++) (return [getLib u]) (getLibs next)
 getLibs (Free t@(Trans _ _ next))          = liftM2 (++) (return [getLib t]) (getLibs next)
@@ -62,6 +66,7 @@ getLibs (Pure _)                           = return []
 
 getStructs :: Stmt a -> IO [String] 
 getStructs (Free d@(Decl _ next))             = getStructs next
+getStructs (Free d@(DeclEmpty _ next))        = getStructs next
 getStructs (Free l@(Load _ next))             = getStructs next
 getStructs (Free u@(Unload _ next))           = getStructs next
 getStructs (Free t@(Trans func _ next))       = liftM2 (++) (return [(show func)]) (getStructs next)
@@ -94,6 +99,15 @@ vector _ elems =    do p <- newLabel
                            vect :: Vector Host a
                            vect = Vector name sz (zip [0..(sz-1)] (map toExpr elems))
                        liftF $ Decl vect vect
+
+initVector :: forall a. (InitExpr a, ToExpr a) => (a -> Expr a) -> Int -> Ion (Vector Host a)
+initVector  _ size = do p <- newLabel
+                        let name = "v" ++ show p
+                            vect :: Vector Host a
+                            elems:: [(Int, Expr a)]
+                            elems = zip ([0..(size-1)]) (replicate size (init :: Expr a))
+                            vect = Vector name size elems
+                        liftF $ DeclEmpty vect vect
 
 random :: Vector Host a -> (Int, Int) -> Ion (Random a)
 random v (a,b)      = do nm  <- newLabel
@@ -145,6 +159,7 @@ upperbound input output iter = liftF $ UpperBound input output iter output
 
 interp :: Stmt a -> IO ()
 interp (Free a@(Decl v next))                 = putStrLn (show a) >> interp next
+interp (Free d@(DeclEmpty v next))            = putStrLn (show d) >> interp next
 interp (Free l@(Load v next))                 = putStrLn (show l) >> interp next
 interp (Free u@(Unload v next))               = putStrLn (show u) >> interp next
 interp (Free t@(Trans fun v next))            = putStrLn (show t) >> interp next
