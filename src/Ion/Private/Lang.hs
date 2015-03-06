@@ -23,7 +23,8 @@ getLibInfo (Decl v _) = [([Thrust], "host_vector")]
                               Cx _ -> [([Cuda], "cuda_complex")]
                               _    -> [])
 getLibInfo (Load _ _)       = [([Thrust], "device_vector")]
-getLibInfo (Trans _ _ _)    = [([Stdlib],"functional"), ([Thrust],"transform")]
+getLibInfo (Unload _ _)     = [([Thrust], "device_vector")]
+getLibInfo (Trans _ _ _)    = [([Thrust],"transform")]
 getLibInfo (Cout _ _)       = [([Stdlib], "iostream")]
 getLibInfo (Fold _ _ _ _ _) = [([Thrust], "reduce")]
 getLibInfo (Sort _ _)       = [([Thrust], "sort")]
@@ -48,6 +49,7 @@ getLib l = concatMap
 getLibs :: Stmt a -> IO [String]
 getLibs (Free d@(Decl _ next))             = liftM2 (++) (return [getLib d]) (getLibs next)
 getLibs (Free l@(Load _ next))             = liftM2 (++) (return [getLib l]) (getLibs next)
+getLibs (Free u@(Unload _ next))           = liftM2 (++) (return [getLib u]) (getLibs next)
 getLibs (Free t@(Trans _ _ next))          = liftM2 (++) (return [getLib t]) (getLibs next)
 getLibs (Free c@(Cout _ next))             = liftM2 (++) (return [getLib c]) (getLibs next)
 getLibs (Free f@(Fold _ _ _ _ next))       = liftM2 (++) (return [getLib f]) (getLibs next)
@@ -61,6 +63,7 @@ getLibs (Pure _)                           = return []
 getStructs :: Stmt a -> IO [String] 
 getStructs (Free d@(Decl _ next))             = getStructs next
 getStructs (Free l@(Load _ next))             = getStructs next
+getStructs (Free u@(Unload _ next))           = getStructs next
 getStructs (Free t@(Trans func _ next))       = liftM2 (++) (return [(show func)]) (getStructs next)
 getStructs (Free c@(Cout _ next))             = getStructs next
 getStructs (Free f@(Fold _ func _ _ next))    = liftM2 (++) (return [(show func)]) (getStructs next)
@@ -108,12 +111,18 @@ load v = let dvec :: Vector Device a
              dvec = Vector ('d' : (drop 1 $ label v)) (size v) (elems v)
          in liftF $ Load dvec dvec 
 
+unload :: forall a. Vector Device a -> Ion (Vector Host a)
+unload v = let hvec :: Vector Host a 
+               hvec = Vector ('h' : (drop 1 $ label v)) (size v) (elems v)
+         in liftF $ Unload hvec hvec 
+
+
 -- a map operation across either host or device vectors
 transform :: Vector Device a -> (Expr a -> Expr a) -> Ion (Vector Device a) 
 transform c expr = do p <- newLabel
                       let body = (expr (Var "a"))
                           name = "f" ++ show p
-                          func = CFunc name body Neither None StructBased 1 
+                          func = CFunc name body Both None StructBased 1 
                       liftF $ Trans func c c
 
 cout :: Vector Host a -> Ion ()
@@ -137,6 +146,7 @@ upperbound input output iter = liftF $ UpperBound input output iter output
 interp :: Stmt a -> IO ()
 interp (Free a@(Decl v next))                 = putStrLn (show a) >> interp next
 interp (Free l@(Load v next))                 = putStrLn (show l) >> interp next
+interp (Free u@(Unload v next))               = putStrLn (show u) >> interp next
 interp (Free t@(Trans fun v next))            = putStrLn (show t) >> interp next
 interp (Free c@(Cout v next))                 = putStrLn (show c) >> interp next
 interp (Free f@(Fold _ fun v _ next))         = putStrLn (show f) >> interp next

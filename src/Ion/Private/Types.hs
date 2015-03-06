@@ -81,6 +81,7 @@ data Statement next where
   Cout  :: Vector Host a -> next -> Statement next
   Fold  :: (Show a) => Name -> CFunc a -> Vector Device a -> Expr a -> next -> Statement next
   Load  :: Vector Device a -> next -> Statement next
+  Unload:: Vector Host a -> next -> Statement next
   FoldD :: (Show a) => Name -> CFunc a -> CFunc a -> Vector Device a -> next -> Statement next
   Sort        :: Vector Device a -> next -> Statement next
   AdjDiff     :: Vector Device a -> next -> Statement next
@@ -217,6 +218,7 @@ instance Show (Statement next) where
                                             ++ "] = "
                                             ++ (show val) 
                                             ++ ";\n\t") elems
+
   show (Load (Vector ident sz elems) next) = "\tthrust::device_vector<"
                                           ++ (retType $ snd $ head elems)
                                           ++ "> "
@@ -224,6 +226,15 @@ instance Show (Statement next) where
                                           ++ " = v"
                                           ++ drop 1 ident
                                           ++ ";\n"
+
+  show (Unload (Vector ident sz elems) next) = "\tthrust::host_vector<"
+                                          ++ (retType $ snd $ head elems)
+                                          ++ "> "
+                                          ++ ident
+                                          ++ " = d"
+                                          ++ drop 1 ident
+                                          ++ ";\n"
+
 
   show (Sort (Vector ident sz elems) next) = "\tthrust::sort("
                                               ++ (concat $ intersperse "," $
@@ -354,6 +365,7 @@ instance Fractional (Expr Float) where
 instance Functor Statement where
   fmap f (Decl vec next) = Decl vec (f next)
   fmap f (Load vec next) = Load vec (f next)
+  fmap f (Unload vec next) = Unload vec (f next)
   fmap f (Trans cfunc vec next) = Trans cfunc vec (f next)
   fmap f (Cout v next) = Cout v (f next) 
   fmap f (Fold to cfunc vec val next) = Fold to cfunc vec val (f next)
