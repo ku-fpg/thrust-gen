@@ -105,7 +105,7 @@ initVector  _ size = do p <- newLabel
                         let name = "v" ++ show p
                             vect :: Vector Host a
                             elems:: [(Int, Expr a)]
-                            elems = zip ([0..(size-1)]) (replicate size (init :: Expr a))
+                            elems = [(0, (init :: Expr a))]
                             vect = Vector name size elems
                         liftF $ DeclEmpty vect vect
 
