@@ -31,7 +31,8 @@ library
                        mtl, 
                        free,
                        turtle,
-                       containers
+                       containers,
+                       natural-transformation
 
   hs-source-dirs:      src
 
